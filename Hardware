@@ -1,0 +1,171 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+//import com.qualcomm.hardware.modernrobotics.ModernRoboticsDigitalTouchSensor;
+
+/**
+ * This is NOT an opmode.
+ * <p>
+ * This class can be used to define all the specific hardware for a single robot.
+ * In this case that robot is a K9 robot.
+ * <p>
+ * This hardware class assumes the following device names have been configured on the robot:
+ * Note:  All names are lower case and some have single spaces between words.
+ * <p>
+ * Motor channel:  Left  drive motor:        "left motor"
+ * Motor channel:  Right drive motor:        "right motor"
+ * Servo channel:  Servo to raise/lower arm: "arm"
+ * Servo channel:  Servo to open/close claw: "claw"
+ * <p>
+ * Note: the configuration of the servos is such that:
+ * As the arm servo approaches 0, the arm position moves up (away from the floor).
+ * As the claw servo approaches 0, the claw opens up (drops the game element).
+ */
+public class HardwareEEBot {
+    // IMU
+    public BNO055IMU imu = null;
+
+    /* Public OpMode members. */
+    public DcMotor leftMotor = null;
+    public DcMotor rightMotor = null;
+    public DcMotor lMotor = null;
+    public DcMotor rMotor = null;
+    //public DcMotor  flipper   = null;
+    //public DcMotor  sweeper    = null;
+    ////public DcMotor  elevator  = null;
+
+    //Servos\
+    public Servo jewelArm = null;
+    //public Servo scoop1 = null;       //right servo
+    //public Servo scoop2 = null;
+    //public Servo clicker1 = null;
+    //public Servo clicker2 = null;
+    //public Servo rightClicker = null;
+    //public Servo leftClicker = null;
+    //public Servo bucket1 = null;
+    //public Servo bucket2 = null;
+    //public Servo forkliftServo = null;
+    //public Servo forkliftFlap = null;
+
+    //Sensors
+
+    ColorSensor jewelSensorColor;
+    DistanceSensor jewelSensorDistance;
+
+
+    /* Local OpMode members. */
+    HardwareMap hwMap = null;
+    private ElapsedTime period = new ElapsedTime();
+
+    /* Constructor */
+    public HardwareEEBot() {
+    }
+
+    /* Initialize standard Hardware interfaces */
+    public void init(HardwareMap ahwMap) {
+        // save reference to HW Map
+        hwMap = ahwMap;
+
+        // Set up the parameters with which we will use our IMU.
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        imu = hwMap.get(BNO055IMU.class, "imu");
+        //imu.initialize(parameters); // Initialize here or in OpMode?
+
+        // Define and Initialize Motors
+        leftMotor = hwMap.dcMotor.get("motor_left");
+        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //leftMotor.setDirection(DcMotor.Direction.REVERSE);
+        leftMotor.setPower(0);
+
+        rightMotor = hwMap.dcMotor.get("motor_right");
+        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightMotor.setPower(0);
+
+        //sweeper = hwMap.dcMotor.get("sweeper");
+
+        lMotor = hwMap.dcMotor.get("motor_left2");
+        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //lMotor.setDirection(DcMotor.Direction.REVERSE);
+        lMotor.setPower(0);
+
+        rMotor = hwMap.dcMotor.get("motor_right2");
+        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rMotor.setPower(0);
+
+        //sweeper = hwMap.dcMotor.get("sweeper");
+        //elevator = hwMap.dcMotor.get("elevator");
+        //elevator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+//        flipper = hwMap.dcMotor.get("flipper");
+        //      flipper.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //    flipper.setDirection(DcMotor.Direction.REVERSE);
+        //  flipper.setPower(0);
+
+        // Get a reference to the color sensor.
+        jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
+
+        // Get a reference to the distance sensor that shares the same name.
+        jewelSensorDistance = hwMap.get(DistanceSensor.class, "sensor_color_distance");
+
+        //Define and initialize sensor
+
+//        rightColorController = colorBeaconRight.getI2cController();
+//        rightColorCallback =  rightColorController.getI2cPortReadyCallback(colorBeaconRight.getPort());
+
+//        I2cDevice colori2cR = hwMap.i2cDevice.get("colorBeaconRight");
+//        colorBeaconRight = new ModernRoboticsI2cColorSensor2(colori2cR.getI2cController(),colori2cR..getPort());
+
+//        rightColorSensor = hwMap.i2cDevice.get("colorBeaconRight");
+//        rightColorSensorReader = new I2cDeviceSynchImpl(rightColorSensor, I2cAddr.create8bit(0x3c), false);
+//        rightColorSensorReader.engage();
+//        leftColorController = colorBeaconLeft.getI2cController();
+//        leftColorCallback =  leftColorController.getI2cPortReadyCallback(colorBeaconLeft.getPort());
+
+
+//        colorBeaconFloor = (ModernRoboticsI2cColorSensor)hwMap.colorSensor.get("colorBeaconFloor");//
+//        colorBeaconFloor.setI2cAddress(I2cAddr.create7bit(0x20));
+//        floorColorController = colorBeaconFloor.getI2cController();
+//        floorColorCallback =  floorColorController.getI2cPortReadyCallback(colorBeaconFloor.getPort());
+//        leftColorController.deregisterForPortReadyCallback(colorBeaconFloor.getPort());
+//        colorBeaconFloorSensorState = new FtcI2cDeviceState(colorBeaconFloor);
+//        colorBeaconFloorSensorState.setEnabled(false);
+
+//Ruled illegal for now, leave for later -- MDC 20170217
+//        redLED      = (DigitalChannel) hwMap.digitalChannel.get("redLED");
+//        blueLED     = (DigitalChannel) hwMap.digitalChannel.get("blueLED");
+        //Use LEDs onboard DIM
+
+
+        // Define and initialize ALL installed servos.
+        jewelArm = hwMap.get(Servo.class, "jewelArm");
+//        scoop1 = hwMap.servo.get("scoop1");
+        //      scoop2 = hwMap.servo.get("scoop2");
+        //    clicker1 = hwMap.servo.get("clicker1");
+        //  clicker2 = hwMap.servo.get("clicker2");
+        //rightClicker = clicker2;
+        //leftClicker = clicker1;
+        // bucket1 = hwMap.servo.get("bucket1");
+        //    forkliftServo = bucket1;
+        //bucket2 = hwMap.servo.get("bucket2");
+        //  forkliftFlap = bucket1;
+
+    }
+}
