@@ -1,0 +1,258 @@
+/**
+ * Created by Team 9386 on 9/27/2016.
+ *
+ * Updated and Rewritten 9/19/2017.
+ */
+package org.firstinspires.ftc.teamcode;
+
+//import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
+
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+//import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import java.lang.Object;
+
+
+//import org.firstinspires.ftc.teamcode.HardwareEEbot;
+
+
+@TeleOp(name="EEbot: EETele", group="EEbot") //this tells the new Driver Station (V11) which type of code this is.
+//@Disabled
+public class EEtele extends OpMode {
+
+    int x = 0;
+    ModernRoboticsTouchSensor touch = null;
+    /* Declare OpMode members. */
+    HardwareEEBot   robot           = new HardwareEEBot();// Use a EE bot hardware
+    //double          armPosition     = robot.ARM_HOME;                   // Servo safe position
+    //double          clawPosition    = robot.CLAW_HOME;                  // Servo safe position
+    //final double    CLAW_SPEED      = 0.01 ;                            // sets rate to move servo
+    //final double    ARM_SPEED       = 0.01 ;                            // sets rate to move servo
+    final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
+    boolean sweeperOn = false;
+
+    /*
+     * Code to run ONCE when the driver hits INIT
+     */
+    @Override
+    public void init() {
+        /* Initialize the hardware variables.
+         * The init() method of the hardware class does all the work here
+         */
+        robot.init(hardwareMap);
+
+        //touch = (ModernRoboticsTouchSensor)hardwareMap.touchSensor.get("touch");
+
+
+        //robot.flipper.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        //robot.flipper.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+        // Send telemetry message to signify robot waiting;
+        telemetry.addData("Say", "Hello Driver");    //
+        updateTelemetry(telemetry);
+    }
+
+    /*
+     * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
+     */
+    @Override
+    public void init_loop() {
+        init();
+    }
+
+    /*
+     * Code to run ONCE when the driver hits PLAY22222222
+     */
+    @Override
+    public void start() {
+    }
+
+    /*
+     * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
+     */
+    @Override
+    public void loop() {
+
+        // If a bumper is down, strafe. Otherwise drive from left and right sticks
+
+        if (gamepad1.left_bumper) {
+            // Strafe left
+
+            // Front left and back right motors go forwards.
+            robot.leftMotor.setPower(STRAFE_SPEED);
+            robot.rMotor.setPower(STRAFE_SPEED);
+
+            // Front right and back left motors go backwards.
+            robot.rightMotor.setPower(-STRAFE_SPEED);
+            robot.lMotor.setPower(-STRAFE_SPEED);
+        }
+        else if (gamepad1.right_bumper){
+            // Strafe right
+
+            // Front right and back left motors go forwards.
+            robot.rightMotor.setPower(STRAFE_SPEED);
+            robot.lMotor.setPower(STRAFE_SPEED);
+
+            // Front left and back right motors go backwards.
+            robot.leftMotor.setPower(-STRAFE_SPEED);
+            robot.rMotor.setPower(-STRAFE_SPEED);
+
+        }
+        else {
+            // Apply motor control
+            double rightPower = scaleInput(gamepad1.right_stick_y);
+            double leftPower  = scaleInput(gamepad1.left_stick_y);
+
+            // Set the two right motors to rightPower
+
+            //robot.rightMotor.setPower(rightPower/10);
+            //robot.rMotor.setPower(rightPower/10);
+
+            robot.rightMotor.setPower(rightPower);
+            robot.rMotor.setPower(rightPower);
+
+            // Set the two left motors to rightPower
+
+            //robot.leftMotor.setPower(leftPower/10);
+            //robot.lMotor.setPower(leftPower/10);
+
+            robot.leftMotor.setPower(leftPower);
+            robot.lMotor.setPower(leftPower);
+
+        }
+        if (gamepad1.dpad_left) {                   // servo2 spins back
+            //robot.secondBestServo.setPosition(0.00);
+            //robot.bestServo.setPosition(1.00);
+            //robot.bucket2.setPosition(1.00);
+        }
+
+        if (gamepad1.dpad_right){              // servo1 spins back
+            //robot.secondBestServo.setPosition(1.00);
+            //robot.bestServo.setPosition(0.00);
+            //robot.bucket2.setPosition(0.05);
+            //} else {
+            //    robot.bestServo.setPosition(0.50);
+            //    robot.bucket1.setPosition(0.50);
+            //    robot.bucket2.setPosition(0.50);
+        }
+
+        if (gamepad1.x) {
+           // robot.bucket1.setPosition(0.05);
+        } else {
+            //robot.bucket1.setPosition(1.00);
+        }
+
+
+        //if (touch.isPressed()){
+            //Do nothing
+            //telemetry.addData(touch.getDeviceName() + " is pressed", touch.isPressed());
+        //}
+        //else{
+            //Do nothing
+        //}
+
+
+
+        if (gamepad1.a){
+            robot.rightMotor.setPower(1.00);
+        }
+
+        if (gamepad1.b){
+            robot.leftMotor.setPower(1.00);
+        }
+
+        if (gamepad1.x){
+            robot.leftMotor.setPower(0.00);
+        }
+
+        if (gamepad1.y){
+            robot.rightMotor.setPower(0.00);
+        }
+
+
+        //else {                              // else do nothing
+        //robot.secondBestServo.setPosition(0.51);
+        //   robot.bestServo.setPosition(0.52);
+        //}
+
+
+        //if (gamepad1.dpad_left){
+        //    robot.clicker.setPosition(0.50);
+        //}
+
+        //if (gamepad1.dpad_right){
+        //   robot.clickerTwo.setPosition(0.50);
+        //}
+
+        //if (gamepad1.left_bumper){
+        //    robot.spool.setPower(-0.50);
+        //}
+
+        //if (gamepad1.right_bumper){
+        //    robot.spool.setPower(0.50);
+        //}
+
+
+
+        //if (gamepad1.a) {
+
+        //  robot.flipper.setPower(1);
+        //robot.flipper.setTargetPosition(1440); //setting target value for flipper
+
+        //} else {
+        //  robot.flipper.setPower(0);
+        //}
+
+
+        //else if (gamepad1.a) {            // if a is pressed, full power backward
+
+        //motorRight.setPower(1.00);
+        //  motorLeft.setPower(-1.00);
+
+        //}
+
+        Thread.yield();
+    }
+
+
+    double scaleInput(double dVal)  {
+//        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
+//                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
+        double[] scaleArray = { 0.0, 0.025, 0.045, 0.5, 0.6, 0.075, 0.09, 0.12,
+                0.15, 0.18, 0.22, 0.25, 0.30, 0.36, 0.85, 1.00, 1.00 };
+
+        // get the corresponding index for the scaleInput array.
+        int index = (int) (dVal * 16.0);
+
+        // index should be positive.
+        if(index < 0){
+            index = -index;
+        }
+
+
+        // index cannot exceed size of array minus 1.
+        if (index > 16) {
+            index = 16;
+        }
+
+        // get value from the array.
+        double dScale = 0.0;
+        if (dVal < 0) {
+            dScale = -scaleArray[index];
+        } else {
+            dScale = scaleArray[index];
+        }
+
+        // return scaled value.
+        return dScale;
+    }
+
+}
