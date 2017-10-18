@@ -36,6 +36,15 @@ public class EEtele extends OpMode {
     //final double    CLAW_SPEED      = 0.01 ;                            // sets rate to move servo
     //final double    ARM_SPEED       = 0.01 ;                            // sets rate to move servo
     final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
+
+    private double grabberLeftMin = 0.59;
+    private double grabberRightMax = 0.45;
+    private double grabberLeftPos;
+    private double grabberRightPos;
+
+    private int leftCounts = 0;
+    private int rightCounts = 0;
+
     boolean sweeperOn = false;
 
     /*
@@ -48,6 +57,8 @@ public class EEtele extends OpMode {
          */
         robot.init(hardwareMap);
 
+        grabberLeftPos = robot.glyphGrabberLeft.getPosition();
+        grabberRightPos = robot.glyphGrabberRight.getPosition();
         //touch = (ModernRoboticsTouchSensor)hardwareMap.touchSensor.get("touch");
 
 
@@ -144,12 +155,6 @@ public class EEtele extends OpMode {
             //    robot.bucket2.setPosition(0.50);
         }
 
-        if (gamepad1.x) {
-           // robot.bucket1.setPosition(0.05);
-        } else {
-            //robot.bucket1.setPosition(1.00);
-        }
-
 
         //if (touch.isPressed()){
             //Do nothing
@@ -162,19 +167,36 @@ public class EEtele extends OpMode {
 
 
         if (gamepad1.a){
-            robot.rightMotor.setPower(1.00);
+            // right grabber toggle
         }
 
         if (gamepad1.b){
-            robot.leftMotor.setPower(1.00);
+            // Right grabber manual adjust
+            double currentPos = robot.glyphGrabberRight.getPosition();
+            if (currentPos >= grabberRightMax) {
+                // Make it so that toggle adapts?
+                robot.glyphGrabberRight.setPosition(grabberRightMax);
+            }
+            else {
+                robot.glyphGrabberRight.setPosition(currentPos + 0.002);
+            }
         }
 
         if (gamepad1.x){
-            robot.leftMotor.setPower(0.00);
+            // left grabber toggle
         }
 
         if (gamepad1.y){
-            robot.rightMotor.setPower(0.00);
+            // Left grabber manual adjust
+            // Idea: Add a toggle button so that instead of having 4 buttons (2 for going in 2 for going out),
+            // have 2 buttons for going in/out on each side, and a third toggle button to determine whether they should go in our out.
+            double currentPos = robot.glyphGrabberLeft.getPosition();
+            if (currentPos <= grabberLeftMin) {
+                robot.glyphGrabberLeft.setPosition(grabberLeftMin);
+            }
+            else {
+                robot.glyphGrabberLeft.setPosition(currentPos - 0.002);
+            }
         }
 
 
