@@ -176,7 +176,7 @@ public class EEtele extends OpMode {
         // TOGGLE GRABBERS
         if (gamepad2.x){
             if (!xDown){
-                toggleOverride = false
+                toggleOverride = false;
                 grabberLeftDown = !grabberLeftDown;
                 xDown = true;
             }
@@ -187,7 +187,7 @@ public class EEtele extends OpMode {
 
         if (gamepad2.a){
             if (!aDown) {
-                toggleOverride = false
+                toggleOverride = false;
                 grabberRightDown = !grabberRightDown;
                 aDown = true;
             }
