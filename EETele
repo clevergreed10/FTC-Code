@@ -56,6 +56,7 @@ public class EEtele extends OpMode {
     private boolean aDown = false;
     private boolean grabberLeftDown = false;
     private boolean grabberRightDown = false;
+    private boolean toggleOverride = false; // The variable used to determine whether to set grabbers with x/a or y/b
     boolean sweeperOn = false;
 
     /*
@@ -175,6 +176,7 @@ public class EEtele extends OpMode {
         // TOGGLE GRABBERS
         if (gamepad2.x){
             if (!xDown){
+                toggleOverride = false
                 grabberLeftDown = !grabberLeftDown;
                 xDown = true;
             }
@@ -185,6 +187,7 @@ public class EEtele extends OpMode {
 
         if (gamepad2.a){
             if (!aDown) {
+                toggleOverride = false
                 grabberRightDown = !grabberRightDown;
                 aDown = true;
             }
@@ -196,6 +199,7 @@ public class EEtele extends OpMode {
         // MANUAL GRABBER ADJUST
         if (gamepad2.y){
             // Manually CLOSE the grabbers
+            toggleOverride = true;
             grabberLeftPos = robot.glyphGrabberLeft.getPosition();
             grabberRightPos = robot.glyphGrabberRight.getPosition();
 
@@ -221,6 +225,7 @@ public class EEtele extends OpMode {
         }
         else if (gamepad2.b) {
             // Manually RELEASE the grabbers
+            toggleOverride = true;
             grabberLeftPos = robot.glyphGrabberLeft.getPosition();
             grabberRightPos = robot.glyphGrabberRight.getPosition();
 
@@ -244,19 +249,20 @@ public class EEtele extends OpMode {
         telemetry.update();
 
         // Logic to set the grabber positions
-        if (grabberLeftDown) {
-            robot.glyphGrabberLeft.setPosition(0.55);
-        }
-        else {
-            robot.glyphGrabberLeft.setPosition(0.7);
+        if (!toggleOverride) {
+            if (grabberLeftDown) {
+                robot.glyphGrabberLeft.setPosition(0.55);
+            } else {
+                robot.glyphGrabberLeft.setPosition(0.7);
+            }
+
+            if (grabberRightDown) {
+                robot.glyphGrabberRight.setPosition(0.48);
+            } else {
+                robot.glyphGrabberRight.setPosition(0.35);
+            }
         }
 
-        if (grabberRightDown){
-            robot.glyphGrabberRight.setPosition(0.48);
-        }
-        else {
-            robot.glyphGrabberRight.setPosition(0.35);
-        }
 
 
         //else {                              // else do nothing
