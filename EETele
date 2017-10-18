@@ -42,10 +42,10 @@ public class EEtele extends OpMode {
     final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
 
     private double strafingSpeed = 0;
-    private double grabberLeftMin = 0.59;
+    private double grabberLeftMin = 0.55;
     private double grabberLeftMax = 0.7;
-    private double grabberRightMin = 0.4;
-    private double grabberRightMax = 0.45;
+    private double grabberRightMin = 0.35;
+    private double grabberRightMax = 0.48;
     private double grabberLeftPos;
     private double grabberRightPos;
 
@@ -249,17 +249,17 @@ public class EEtele extends OpMode {
         telemetry.update();
 
         // Logic to set the grabber positions
-        if (!toggleOverride) {
+       if (!toggleOverride) {
             if (grabberLeftDown) {
-                robot.glyphGrabberLeft.setPosition(0.55);
+                robot.glyphGrabberLeft.setPosition(grabberLeftMin);
             } else {
-                robot.glyphGrabberLeft.setPosition(0.7);
+                robot.glyphGrabberLeft.setPosition(grabberLeftMax);
             }
 
             if (grabberRightDown) {
-                robot.glyphGrabberRight.setPosition(0.48);
+                robot.glyphGrabberRight.setPosition(grabberRightMax);
             } else {
-                robot.glyphGrabberRight.setPosition(0.35);
+                robot.glyphGrabberRight.setPosition(grabberRightMin);
             }
         }
 
