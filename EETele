@@ -2,6 +2,9 @@
  * Created by Team 9386 on 9/27/2016.
  *
  * Updated and Rewritten 9/19/2017.
+ *
+ * TODO - 10-10: Change strafing to Triggers, scale speed,
+ * TODO - 10-10: Code glyph grabbers on X and B buttons
  */
 package org.firstinspires.ftc.teamcode;
 
@@ -12,6 +15,7 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import java.lang.*;
 //import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -28,7 +32,7 @@ import java.lang.Object;
 public class EEtele extends OpMode {
 
     int x = 0;
-    ModernRoboticsTouchSensor touch = null;
+    //ModernRoboticsTouchSensor touch = null;
     /* Declare OpMode members. */
     HardwareEEBot   robot           = new HardwareEEBot();// Use a EE bot hardware
     //double          armPosition     = robot.ARM_HOME;                   // Servo safe position
@@ -37,7 +41,10 @@ public class EEtele extends OpMode {
     //final double    ARM_SPEED       = 0.01 ;                            // sets rate to move servo
     final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
 
+    private double strafingSpeed = 0;
     private double grabberLeftMin = 0.59;
+    private double grabberLeftMax = 0.7;
+    private double grabberRightMin = 0.4;
     private double grabberRightMax = 0.45;
     private double grabberLeftPos;
     private double grabberRightPos;
@@ -45,6 +52,10 @@ public class EEtele extends OpMode {
     private int leftCounts = 0;
     private int rightCounts = 0;
 
+    private boolean xDown = false;
+    private boolean aDown = false;
+    private boolean grabberLeftDown = false;
+    private boolean grabberRightDown = false;
     boolean sweeperOn = false;
 
     /*
@@ -59,12 +70,25 @@ public class EEtele extends OpMode {
 
         grabberLeftPos = robot.glyphGrabberLeft.getPosition();
         grabberRightPos = robot.glyphGrabberRight.getPosition();
+
         //touch = (ModernRoboticsTouchSensor)hardwareMap.touchSensor.get("touch");
 
 
         //robot.flipper.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         //robot.flipper.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        // Set the glyph grabbers from starting position to ready position
+        //robot.glyphGrabberLeft.setPosition(0.5);
+        /*try {
+            wait(1000);
+        } catch(InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+
+*/
+        //wait(1000);
+
+        //robot.glyphGrabberRight.setPosition(0.5);
 
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Say", "Hello Driver");    //
@@ -94,27 +118,31 @@ public class EEtele extends OpMode {
 
         // If a bumper is down, strafe. Otherwise drive from left and right sticks
 
-        if (gamepad1.left_bumper) {
+        if (gamepad1.left_trigger > 0.1) {
             // Strafe left
+            strafingSpeed = scaleInput(gamepad1.left_trigger) * 3/4;
 
+            telemetry.addData("Left bumper down!", strafingSpeed);
             // Front left and back right motors go forwards.
-            robot.leftMotor.setPower(STRAFE_SPEED);
-            robot.rMotor.setPower(STRAFE_SPEED);
+            robot.leftMotor.setPower(strafingSpeed);
+            robot.rMotor.setPower(strafingSpeed);
 
             // Front right and back left motors go backwards.
-            robot.rightMotor.setPower(-STRAFE_SPEED);
-            robot.lMotor.setPower(-STRAFE_SPEED);
+            robot.rightMotor.setPower(-strafingSpeed);
+            robot.lMotor.setPower(-strafingSpeed);
         }
-        else if (gamepad1.right_bumper){
+        else if (gamepad1.right_trigger > 0.1){
             // Strafe right
+            strafingSpeed = scaleInput(gamepad1.right_trigger) * 3/4;
 
+            telemetry.addData("Right trigger down!", strafingSpeed);
             // Front right and back left motors go forwards.
-            robot.rightMotor.setPower(STRAFE_SPEED);
-            robot.lMotor.setPower(STRAFE_SPEED);
+            robot.rightMotor.setPower(strafingSpeed);
+            robot.lMotor.setPower(strafingSpeed);
 
             // Front left and back right motors go backwards.
-            robot.leftMotor.setPower(-STRAFE_SPEED);
-            robot.rMotor.setPower(-STRAFE_SPEED);
+            robot.leftMotor.setPower(-strafingSpeed);
+            robot.rMotor.setPower(-strafingSpeed);
 
         }
         else {
@@ -122,88 +150,119 @@ public class EEtele extends OpMode {
             double rightPower = scaleInput(gamepad1.right_stick_y);
             double leftPower  = scaleInput(gamepad1.left_stick_y);
 
+            telemetry.addData("rightPower", rightPower);
+            telemetry.addData("leftPower", leftPower);
             // Set the two right motors to rightPower
-
-            //robot.rightMotor.setPower(rightPower/10);
-            //robot.rMotor.setPower(rightPower/10);
 
             robot.rightMotor.setPower(rightPower);
             robot.rMotor.setPower(rightPower);
 
             // Set the two left motors to rightPower
 
-            //robot.leftMotor.setPower(leftPower/10);
-            //robot.lMotor.setPower(leftPower/10);
-
             robot.leftMotor.setPower(leftPower);
             robot.lMotor.setPower(leftPower);
-
-        }
-        if (gamepad1.dpad_left) {                   // servo2 spins back
-            //robot.secondBestServo.setPosition(0.00);
-            //robot.bestServo.setPosition(1.00);
-            //robot.bucket2.setPosition(1.00);
         }
 
-        if (gamepad1.dpad_right){              // servo1 spins back
-            //robot.secondBestServo.setPosition(1.00);
-            //robot.bestServo.setPosition(0.00);
-            //robot.bucket2.setPosition(0.05);
-            //} else {
-            //    robot.bestServo.setPosition(0.50);
-            //    robot.bucket1.setPosition(0.50);
-            //    robot.bucket2.setPosition(0.50);
+        if (Math.abs(gamepad2.left_stick_y) > 0.1) {
+            double spoolSpeed = scaleInput(gamepad2.left_stick_y) / 2;
+            robot.spool.setPower(spoolSpeed);
         }
-
-
-        //if (touch.isPressed()){
-            //Do nothing
-            //telemetry.addData(touch.getDeviceName() + " is pressed", touch.isPressed());
-        //}
-        //else{
-            //Do nothing
-        //}
-
-
-
-        if (gamepad1.a){
-            // right grabber toggle
+        else {
+            robot.spool.setPower(0);
         }
+        telemetry.update();
 
-        if (gamepad1.b){
-            // Right grabber manual adjust
-            double currentPos = robot.glyphGrabberRight.getPosition();
-            if (currentPos >= grabberRightMax) {
-                // Make it so that toggle adapts?
-                robot.glyphGrabberRight.setPosition(grabberRightMax);
-            }
-            else {
-                robot.glyphGrabberRight.setPosition(currentPos + 0.002);
+        // TOGGLE GRABBERS
+        if (gamepad2.x){
+            if (!xDown){
+                grabberLeftDown = !grabberLeftDown;
+                xDown = true;
             }
         }
-
-        if (gamepad1.x){
-            // left grabber toggle
+        else {
+            xDown = false;
         }
 
-        if (gamepad1.y){
-            // Left grabber manual adjust
-            // Idea: Add a toggle button so that instead of having 4 buttons (2 for going in 2 for going out),
-            // have 2 buttons for going in/out on each side, and a third toggle button to determine whether they should go in our out.
-            double currentPos = robot.glyphGrabberLeft.getPosition();
-            if (currentPos <= grabberLeftMin) {
+        if (gamepad2.a){
+            if (!aDown) {
+                grabberRightDown = !grabberRightDown;
+                aDown = true;
+            }
+        }
+        else {
+            aDown = false;
+        }
+
+        // MANUAL GRABBER ADJUST
+        if (gamepad2.y){
+            // Manually CLOSE the grabbers
+            grabberLeftPos = robot.glyphGrabberLeft.getPosition();
+            grabberRightPos = robot.glyphGrabberRight.getPosition();
+
+            // Close left if it's not too far already
+            if (grabberLeftPos <= grabberLeftMin) {
+                telemetry.addData("Grabber left not adjusted.", grabberLeftPos);
                 robot.glyphGrabberLeft.setPosition(grabberLeftMin);
             }
             else {
-                robot.glyphGrabberLeft.setPosition(currentPos - 0.002);
+                telemetry.addData("Adjusting grabber left.", grabberLeftPos);
+                robot.glyphGrabberLeft.setPosition(grabberLeftPos - 0.002);
             }
+
+            // Close right if it's not too far already
+            if (grabberRightPos >= grabberRightMax) {
+                telemetry.addData("Grabber right not adjusted.", grabberRightPos);
+                robot.glyphGrabberRight.setPosition(grabberRightMax);
+            }
+            else {
+                telemetry.addData("Adjusting grabber right.", grabberRightPos);
+                robot.glyphGrabberRight.setPosition(grabberRightPos + 0.002);
+            }
+        }
+        else if (gamepad2.b) {
+            // Manually RELEASE the grabbers
+            grabberLeftPos = robot.glyphGrabberLeft.getPosition();
+            grabberRightPos = robot.glyphGrabberRight.getPosition();
+
+            // Close left if it's not too far already
+            if (grabberLeftPos >= grabberLeftMax) {
+                robot.glyphGrabberLeft.setPosition(grabberLeftMax);
+            }
+            else {
+                robot.glyphGrabberLeft.setPosition(grabberLeftPos + 0.002);
+            }
+
+            // Close right if it's not too far already
+            if (grabberRightPos <= grabberRightMin) {
+                robot.glyphGrabberRight.setPosition(grabberRightMin);
+            }
+            else {
+                robot.glyphGrabberRight.setPosition(grabberRightPos - 0.002);
+            }
+        }
+
+        telemetry.update();
+
+        // Logic to set the grabber positions
+        if (grabberLeftDown) {
+            robot.glyphGrabberLeft.setPosition(0.55);
+        }
+        else {
+            robot.glyphGrabberLeft.setPosition(0.7);
+        }
+
+        if (grabberRightDown){
+            robot.glyphGrabberRight.setPosition(0.48);
+        }
+        else {
+            robot.glyphGrabberRight.setPosition(0.35);
         }
 
 
         //else {                              // else do nothing
         //robot.secondBestServo.setPosition(0.51);
         //   robot.bestServo.setPosition(0.52);
-        //}
+        //
 
 
         //if (gamepad1.dpad_left){
@@ -248,8 +307,8 @@ public class EEtele extends OpMode {
     double scaleInput(double dVal)  {
 //        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
 //                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
-        double[] scaleArray = { 0.0, 0.025, 0.045, 0.5, 0.6, 0.075, 0.09, 0.12,
-                0.15, 0.18, 0.22, 0.25, 0.30, 0.36, 0.85, 1.00, 1.00 };
+        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
+              0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
 
         // get the corresponding index for the scaleInput array.
         int index = (int) (dVal * 16.0);
@@ -276,5 +335,4 @@ public class EEtele extends OpMode {
         // return scaled value.
         return dScale;
     }
-
 }
