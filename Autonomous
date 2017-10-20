@@ -37,14 +37,23 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Func;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.robotcore.external.navigation.VuMarkInstanceId;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 import java.util.Locale;
 
@@ -73,8 +82,20 @@ public class Autonomous extends LinearOpMode {
     Orientation angles;
     Acceleration gravity;
 
+    OpenGLMatrix lastLocation = null;
+
+    //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
+
+    VuforiaLocalizer vuforia;
+    VuforiaTrackable relicTemplate;
+
+
     final int BLUE = 0;
     final int RED  = 1;
+
+    final int LEFT   = -1;
+    final int CENTER = -2;
+    final int RIGHT  = -3;
 
     private int TEAMCOLOR = BLUE; // Blue for debug purposes, will eventually be null initially and set by a button
 
@@ -83,37 +104,39 @@ public class Autonomous extends LinearOpMode {
     //----------------------------------------------------------------------------------------------
 
     @Override public void runOpMode() {
+/*
+         * To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
+         * If no camera monitor is desired, use the parameterless constructor instead (commented out below).
+         * We will probably turn off monitor once we get vuforia down.
+         */
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
-        // Set up the parameters with which we will use our IMU. Note that integration
-        // algorithm here just reports accelerations to the logcat log; it doesn't actually
-        // provide positional information.
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
-        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+        // OR...  Do Not Activate the Camera Monitor View, to save power
+        // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
+        // IMPORTANT: GET UPDATED LICENSE KEY!!!!
+        parameters.vuforiaLicenseKey = "AUo9rlT/////AAAAGe2zjReuIEMDtC0KIDm3i7s8yaOmjF2DN7T97zzidTTkwq4JVwJxpvmN7s3ypFxLXMQSCTW/j33tTITrCwe/u0825T6jAEjJahSwL8wt1kVRW1kLD+Un+6V8QKmT/j1MGi8iq1lMxlEiXVwK/AcdfLOtKZVbFdKJ9Sh39eGPwWI0CTYfralUCM6nPAmLgo4rV3+RfEpLpFtFU49keW3190y88z+sYCRsUfwdIo5RLmVZgl+5V41QR0QUcVBsP43OcJJhjd7cvIs9HoiW2feL8W3+pgNefdPNNSKjzbOZHGV5/4mH1bhP0JMeKl0N++1EBvm8ZGVhnNfWxwRzJNmmQuEELfXFRaHQQi5RQdvvWp0Z";
 
-        // Set up our telemetry dashboard
-        composeTelemetry();
+        /*
+         * We also indicate which camera on the RC that we wish to use.
+         * Here we chose the back (HiRes) camera (for greater range), but
+         * for a competition robot, the front camera might be more convenient.
+         */
+        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        this.vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
-        // Wait until we're told to go
-        waitForStart();
+        /**
+         * Load the data set containing the VuMarks for Relic Recovery. There's only one trackable
+         * in this data set: all three of the VuMarks in the game were created from this one template,
+         * but differ in their instance id information.
+         * @see VuMarkInstanceId
+         */
+        VuforiaTrackables relicTrackables = this.vuforia.loadTrackablesFromAsset("RelicVuMark");
+        relicTemplate = relicTrackables.get(0);
+        relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
-        // Start the logging of measured acceleration
-        imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
-
-        // Loop and update the dashboard
-        while (opModeIsActive()) {
-            telemetry.update();
-        }
+        relicTrackables.activate();
     }
 
     // Function to lower the jewel arm and sense the color
@@ -229,7 +252,44 @@ public class Autonomous extends LinearOpMode {
         return (time < startTime + timeout);
     }
 
+    // Function find get the cipher value at the start of autonomous
+    // timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
+    public int findCipher(double timeout) {
+        double startTime = time;
 
+        while (opModeIsActive()) {
+            if (time > startTime + timeout) {
+                break;
+            }
+
+            /**
+             * See if any of the instances of {@link relicTemplate} are currently visible.
+             * {@link RelicRecoveryVuMark} is an enum which can have the following values:
+             * UNKNOWN, LEFT, CENTER, and RIGHT. When a VuMark is visible, something other than
+             * UNKNOWN will be returned by {@link RelicRecoveryVuMark#from(VuforiaTrackable)}.
+             */
+            RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(relicTemplate);
+            if (vuMark != RelicRecoveryVuMark.UNKNOWN) {
+
+                // Found an instance of the template.
+                telemetry.addData("VuMark", "%s visible", vuMark);
+                if (vuMark == RelicRecoveryVuMark.LEFT) {
+                    return LEFT;
+                }
+                else if (vuMark == RelicRecoveryVuMark.CENTER) {
+                    return CENTER;
+                }
+                else if (vuMark == RelicRecoveryVuMark.RIGHT) {
+                    return RIGHT;
+                }
+            }
+            else {
+                telemetry.addData("VuMark", "not visible");
+            }
+            telemetry.update();
+        }
+        return CENTER; // No vumark was found within the timeout period, so we'll just return center (1/3 chance of getting it right)
+    }
     //----------------------------------------------------------------------------------------------
 // Telemetry Configuration
 //----------------------------------------------------------------------------------------------
