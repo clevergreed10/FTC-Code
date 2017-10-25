@@ -9,27 +9,19 @@
 package org.firstinspires.ftc.teamcode;
 
 //import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import java.lang.*;
+
 //import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.Range;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import java.lang.Object;
 
 
 //import org.firstinspires.ftc.teamcode.HardwareEEbot;
 
 
-@TeleOp(name="EEbot: EETele", group="EEbot") //this tells the new Driver Station (V11) which type of code this is.
+@TeleOp(name="EEbot: Cap'sOp", group="EEbot") //this tells the new Driver Station (V11) which type of code this is.
 //@Disabled
-public class EEtele extends OpMode {
+public class CapsOp extends OpMode {
 
     int x = 0;
     //ModernRoboticsTouchSensor touch = null;
@@ -42,10 +34,10 @@ public class EEtele extends OpMode {
     final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
 
     private double strafingSpeed = 0;
-    private double grabberLeftMin = 0.55;
-    private double grabberLeftMax = 0.7;
-    private double grabberRightMin = 0.35;
-    private double grabberRightMax = 0.48;
+    private double grabberLeftMin = 0.48;
+    private double grabberLeftMax = 0.6;
+    private double grabberRightMin = 0.25;
+    private double grabberRightMax = 0.33;
     private double grabberLeftPos;
     private double grabberRightPos;
 
@@ -54,9 +46,11 @@ public class EEtele extends OpMode {
 
     private boolean xDown = false;
     private boolean aDown = false;
+    private boolean bDown = false;
+    private boolean toggleOverride = false; // The variable used to determine whether to set grabbers with x/a or y/b
     private boolean grabberLeftDown = false;
     private boolean grabberRightDown = false;
-    private boolean toggleOverride = false; // The variable used to determine whether to set grabbers with x/a or y/b
+    private boolean grabberAllDown = false;
     boolean sweeperOn = false;
 
     /*
@@ -117,34 +111,34 @@ public class EEtele extends OpMode {
     @Override
     public void loop() {
 
+        // GAMEPAD 1 CONTROLS \\
         // If a bumper is down, strafe. Otherwise drive from left and right sticks
 
         if (gamepad1.left_trigger > 0.1) {
             // Strafe left
-            strafingSpeed = scaleInput(gamepad1.left_trigger) * 3/4;
+            strafingSpeed = scaleInput(gamepad1.left_trigger);
 
             telemetry.addData("Left bumper down!", strafingSpeed);
             // Front left and back right motors go forwards.
-            robot.leftMotor.setPower(strafingSpeed);
+            robot.leftMotor.setPower(strafingSpeed * 0.75);
             robot.rMotor.setPower(strafingSpeed);
 
             // Front right and back left motors go backwards.
-            robot.rightMotor.setPower(-strafingSpeed);
+            robot.rightMotor.setPower(-strafingSpeed * 0.75);
             robot.lMotor.setPower(-strafingSpeed);
         }
         else if (gamepad1.right_trigger > 0.1){
             // Strafe right
-            strafingSpeed = scaleInput(gamepad1.right_trigger) * 3/4;
+            strafingSpeed = scaleInput(gamepad1.right_trigger);
 
             telemetry.addData("Right trigger down!", strafingSpeed);
             // Front right and back left motors go forwards.
-            robot.rightMotor.setPower(strafingSpeed);
-            robot.lMotor.setPower(strafingSpeed);
+            robot.rightMotor.setPower(strafingSpeed * 0.75);
+            robot.lMotor.setPower(strafingSpeed );
 
             // Front left and back right motors go backwards.
-            robot.leftMotor.setPower(-strafingSpeed);
+            robot.leftMotor.setPower(-strafingSpeed * 0.75);
             robot.rMotor.setPower(-strafingSpeed);
-
         }
         else {
             // Apply motor control
@@ -155,17 +149,17 @@ public class EEtele extends OpMode {
             telemetry.addData("leftPower", leftPower);
             // Set the two right motors to rightPower
 
-            robot.rightMotor.setPower(rightPower);
-            robot.rMotor.setPower(rightPower);
+            robot.rightMotor.setPower(rightPower/2);
+            robot.rMotor.setPower(rightPower/2);
 
             // Set the two left motors to rightPower
 
-            robot.leftMotor.setPower(leftPower);
-            robot.lMotor.setPower(leftPower);
+            robot.leftMotor.setPower(leftPower/2);
+            robot.lMotor.setPower(leftPower/2);
         }
 
         if (Math.abs(gamepad2.left_stick_y) > 0.1) {
-            double spoolSpeed = scaleInput(gamepad2.left_stick_y) / 2;
+            double spoolSpeed = scaleInput(gamepad2.left_stick_y);
             robot.spool.setPower(spoolSpeed);
         }
         else {
@@ -173,12 +167,95 @@ public class EEtele extends OpMode {
         }
         telemetry.update();
 
+
+        if (gamepad1.y){
+            robot.rMotor.setPower(-0.5);
+            robot.rightMotor.setPower(-0.5);
+            robot.leftMotor.setPower(-0.5);
+            robot.lMotor.setPower(-0.5);
+        }
+
+        if (gamepad1.a){
+            robot.rMotor.setPower(0.5);
+            robot.rightMotor.setPower(0.5);
+            robot.leftMotor.setPower(0.5);
+            robot.lMotor.setPower(0.5);
+        }
+
+
+        if (gamepad2.dpad_up){
+            robot.glyphGrabberLeft.setPosition(0.05);
+            robot.glyphGrabberRight.setPosition(0.95);
+        }
+
+        if (gamepad2.dpad_down){
+            robot.glyphGrabberLeft.setPosition(0.95);
+            robot.glyphGrabberRight.setPosition(0.05);
+        }
+
+        // GAMEPAD 2 CONTROLS \\
+
+        // MANUAL GRABBER ADJUST
+        double currentLeftPos = robot.glyphGrabberLeft.getPosition();
+        double currentRightPos = robot.glyphGrabberRight.getPosition();
+
+        if (gamepad2.y){
+            // Manually CLOSE the grabbers
+            // Close left if it's not too far already
+            if (currentLeftPos <= grabberLeftMin) {
+                telemetry.addData("Grabber left not adjusted.", currentLeftPos);
+                grabberLeftPos = grabberLeftMin;
+            }
+            else {
+                telemetry.addData("Adjusting grabber left.", currentLeftPos);
+                grabberLeftPos = currentLeftPos - 0.002;
+            }
+
+            // Close right if it's not too far already
+            if (currentRightPos >= grabberRightMax) {
+                telemetry.addData("Grabber right not adjusted.", currentRightPos);
+                grabberRightPos = grabberRightMax;
+            }
+            else {
+                telemetry.addData("Adjusting grabber right.", currentRightPos);
+                grabberRightPos = currentRightPos + 0.002;
+            }
+        }
+        else if (gamepad2.b) {
+            // Manually RELEASE the grabbers
+
+            // Close left if it's not too far already
+            if (currentLeftPos >= grabberLeftMax) {
+                telemetry.addData("Grabber left not adjusted.", currentLeftPos);
+                grabberLeftPos = grabberLeftMax;
+            }
+            else {
+                telemetry.addData("Adjusting grabber left.", currentLeftPos);
+                grabberLeftPos = currentLeftPos + 0.002;
+            }
+
+            // Close right if it's not too far already
+            if (currentRightPos <= grabberRightMin) {
+                telemetry.addData("Grabber right not adjusted.", currentRightPos);
+                grabberRightPos = grabberRightMin;
+            }
+            else {
+                telemetry.addData("Adjusting grabber right.", currentRightPos);
+                grabberRightPos = currentRightPos - 0.002;
+            }
+        }
+
         // TOGGLE GRABBERS
         if (gamepad2.x){
             if (!xDown){
-                toggleOverride = false;
                 grabberLeftDown = !grabberLeftDown;
                 xDown = true;
+                if (grabberLeftDown) {
+                    grabberLeftPos = grabberLeftMin;
+                }
+                else {
+                    grabberLeftPos = grabberLeftMax;
+                }
             }
         }
         else {
@@ -187,82 +264,57 @@ public class EEtele extends OpMode {
 
         if (gamepad2.a){
             if (!aDown) {
-                toggleOverride = false;
                 grabberRightDown = !grabberRightDown;
                 aDown = true;
+                if (grabberRightDown) {
+                    grabberRightPos = grabberRightMin;
+                }
+                else {
+                    grabberRightPos = grabberRightMax;
+                }
             }
         }
-        else {
+        else{
             aDown = false;
         }
 
-        // MANUAL GRABBER ADJUST
-        if (gamepad2.y){
-            // Manually CLOSE the grabbers
-            toggleOverride = true;
-            grabberLeftPos = robot.glyphGrabberLeft.getPosition();
-            grabberRightPos = robot.glyphGrabberRight.getPosition();
-
-            // Close left if it's not too far already
-            if (grabberLeftPos <= grabberLeftMin) {
-                telemetry.addData("Grabber left not adjusted.", grabberLeftPos);
-                robot.glyphGrabberLeft.setPosition(grabberLeftMin);
-            }
-            else {
-                telemetry.addData("Adjusting grabber left.", grabberLeftPos);
-                robot.glyphGrabberLeft.setPosition(grabberLeftPos - 0.002);
-            }
-
-            // Close right if it's not too far already
-            if (grabberRightPos >= grabberRightMax) {
-                telemetry.addData("Grabber right not adjusted.", grabberRightPos);
-                robot.glyphGrabberRight.setPosition(grabberRightMax);
-            }
-            else {
-                telemetry.addData("Adjusting grabber right.", grabberRightPos);
-                robot.glyphGrabberRight.setPosition(grabberRightPos + 0.002);
+        if (gamepad2.right_bumper){
+            if (!bDown) {
+                grabberAllDown = !grabberAllDown;
+                bDown = true;
+                if (grabberAllDown) {
+                    grabberRightPos = grabberRightMin;
+                    grabberLeftPos = grabberLeftMin;
+                }
+                else {
+                    grabberRightPos = grabberRightMax;
+                    grabberLeftPos = grabberLeftMax;
+                }
             }
         }
-        else if (gamepad2.b) {
-            // Manually RELEASE the grabbers
-            toggleOverride = true;
-            grabberLeftPos = robot.glyphGrabberLeft.getPosition();
-            grabberRightPos = robot.glyphGrabberRight.getPosition();
-
-            // Close left if it's not too far already
-            if (grabberLeftPos >= grabberLeftMax) {
-                robot.glyphGrabberLeft.setPosition(grabberLeftMax);
-            }
-            else {
-                robot.glyphGrabberLeft.setPosition(grabberLeftPos + 0.002);
-            }
-
-            // Close right if it's not too far already
-            if (grabberRightPos <= grabberRightMin) {
-                robot.glyphGrabberRight.setPosition(grabberRightMin);
-            }
-            else {
-                robot.glyphGrabberRight.setPosition(grabberRightPos - 0.002);
-            }
+        else {
+            bDown = false;
         }
 
         telemetry.update();
 
         // Logic to set the grabber positions
-       if (!toggleOverride) {
-            if (grabberLeftDown) {
-                robot.glyphGrabberLeft.setPosition(grabberLeftMin);
-            } else {
-                robot.glyphGrabberLeft.setPosition(grabberLeftMax);
-            }
-
-            if (grabberRightDown) {
-                robot.glyphGrabberRight.setPosition(grabberRightMax);
-            } else {
-                robot.glyphGrabberRight.setPosition(grabberRightMin);
-            }
-        }
-
+        //These are the right positions for the new REV servos
+        robot.glyphGrabberLeft.setPosition(grabberLeftPos);
+        robot.glyphGrabberRight.setPosition(grabberRightPos);
+//        if (grabberLeftDown) {
+//            robot.glyphGrabberLeft.setPosition(0.48);
+//        }
+//        else {
+//            robot.glyphGrabberLeft.setPosition(0.70);
+//        }
+//
+//        if (grabberRightDown){
+//            robot.glyphGrabberRight.setPosition(0.33);
+//        }
+//        else {
+//            robot.glyphGrabberRight.setPosition(0.20);
+//        }
 
 
         //else {                              // else do nothing
