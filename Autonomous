@@ -77,12 +77,11 @@ public class Autonomous extends LinearOpMode    {
     // The IMU sensor object
     BNO055IMU imu;
 
-    // State used for updating telemetry
+    // State used for updating telemetry .. unsure if necessary
     Orientation angles;
     Acceleration gravity;
 
     //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
-
     VuforiaLocalizer vuforia;
     VuforiaTrackable relicTemplate;
 
@@ -92,6 +91,12 @@ public class Autonomous extends LinearOpMode    {
     final int LEFT   = -1;
     final int CENTER = -2;
     final int RIGHT  = -3;
+
+    private double strafingSpeed = 0;
+    private double grabberLeftMin = 0.48;
+    private double grabberLeftMax = 0.6;
+    private double grabberRightMin = 0.25;
+    private double grabberRightMax = 0.33;
 
     private int TEAMCOLOR = BLUE;
 
@@ -105,24 +110,21 @@ public class Autonomous extends LinearOpMode    {
     //----------------------------------------------------------------------------------------------
 
     @Override public void runOpMode() {
-
         robot.init(hardwareMap);
 
         // Set up the parameters with which we will use our IMU.
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        //parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
         parameters.loggingEnabled      = true;
         parameters.loggingTag          = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
+        // The robot has been crashing during init phase, so we now initialize the imu inside our runOpMode()
         robot.imu.initialize(parameters);
 
-        /*To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
-         * If no camera monitor is desired, use the parameterless constructor instead (commented out below).
-         * We will probably turn off monitor once we get vuforia down.
-        */
+        // Tell vuforia to show what the camera is seeing.
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         VuforiaLocalizer.Parameters vuforiaParameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
@@ -131,16 +133,10 @@ public class Autonomous extends LinearOpMode    {
 
         // Joshua's license key
         vuforiaParameters.vuforiaLicenseKey = "AdLORsH/////AAAAGSk7H7mSvUJng/rqnN96DDJxBj6Ir4uum2FxifkokX51jW5AIEmws+YcGEoLywmIHtl1ajCqCfQ1tIjgRVhYlFbYasGMvweedEqPzlifXfLf6uFwPKN82+OT/JpKhtJr7n6LTvh5EQERs9eDByNvprWy0vqb5CEUszHs4WA2zrsS7occZN6MLIQXSBlArbnWAGr879iJb6Toed/6TLgIrzDkH1mTiLmJ7ANsHoNkazcQeC+pvtfdylzd7n3Azds1+wo1X0CmM6o4vw2e31DslsnJNLHLxCWpWArSVHKrvPJS75jDUeHiyoi4qlOm3R2S8nElj94EIJ69R66Ofk0gxM2F/10Juk+z9p0UQ5jaYAU0";
-
-        /*
-         * We also indicate which camera on the RC that we wish to use.
-         * Here we chose the back (HiRes) camera (for greater range), but
-         * for a competition robot, the front camera might be more convenient.
-         */
+        // Chose which camera to use
         vuforiaParameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
         this.vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParameters);
-
-        /**
+        /*
          * Load the data set containing the VuMarks for Relic Recovery. There's only one trackable
          * in this data set: all three of the VuMarks in the game were created from this one template,
          * but differ in their instance id information.
@@ -153,44 +149,68 @@ public class Autonomous extends LinearOpMode    {
         relicTrackables.activate();
 
         // Setup over, now run commands
-        findPictograph(10);
+        robot.glyphGrabberLeft.setPosition(grabberLeftMin); // Close our grabber arms onto the glyph
+        robot.glyphGrabberRight.setPosition(grabberRightMax);
+        int pictoKey = findPictograph(10); // Does this yield or run on it's own?
+        boolean driveForward = jewelRun();
+        if (driveForward) {
+            gyroDrive(0, 0.25, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
+        }
+        else {
+            gyroDrive(0, -0.25, 50, 1.0);
+            sleep(100); // Ensure we come to a complete stop.
+            gyroDrive(0, 0.25, 100, 1.0); // Drive to the position we would be at if we had gone backwards
+        }
+
         telemetry.addData("Prepare to drive!", " Forward");
-        telemetry.update();
-        sleep(10000);
-        gyroDrive(0, 0.5, 70, 5);
+        sleep(1000); // For debug
+        gyroDrive(0, 0.5, 500, 5.0); // Drive to the center of the cryptobox, then go backwards or forwards if the pictograph is left or right respectively.
+        if (pictoKey == LEFT) {
+            gyroDrive(0, 0.5, 100, 5.0);
+        }
+        else if (pictoKey == RIGHT) {
+            gyroDrive(0, -0.5, 100, 5.0);
+        }
+        gyroTurn(90, 0.25, 5.0);
+        sleep(500);
+        robot.glyphGrabberLeft.setPosition(grabberLeftMax); // Release the glyph and score!
+        robot.glyphGrabberRight.setPosition(grabberRightMin);
+        // Our robot should be inside the safezone at this point and our autonomous will end
+        // In the future we are going to play around with grabbing more glyphs off the field in autonomous
     }
 
-    // Function to lower the jewel arm and sense the color
-    // Returning true means to drive forward (direction of color sensor)
-    // Returning false means the opposite
-    /*boolean jewelRun() {
+    /* Function to lower the jewel arm and sense the color
+     Returning true means to drive forward (direction of color sensor)
+     Returning false means the opposite
+     */
+    boolean jewelRun(){
         robot.jewelArm.setPosition(1.0);
-
+        boolean goForward = false;
+        sleep(500);
         telemetry.addData("Red: ", robot.jewelSensorColor.red());
         telemetry.addData("Blue: ", robot.jewelSensorColor.blue());
         telemetry.update();
         if (robot.jewelSensorColor.red() > 1) {
             // Direct ball is red
             if (TEAMCOLOR == RED) {
-                return true;
+                goForward = true;
             }
             else {
-                return false;
+                goForward = false; // This is probably redundant
             }
         }
-        else {
-            // Direct ball is blue, opposite ball is red
-            if (TEAMCOLOR == RED) {
-                return false;
-            } else {
-                return true;
-            }
-        }*/
-    //}
+        robot.jewelArm.setPosition(0.1); // We need to measure exactly where to set the arm position
+        return goForward;
+    }
 
+    /*
+    Drive by gyro function, drives the robot a given length keeping within a certain angle
+    targetAngle: The angle we wish to stay on
+    speed: The speed of the motors. Unlike last year, -speed means you go backwards.
+    distance: The length we wish to travel
+     */
     public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
-
-        // Set the motors to measure encoder counts
+        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
         robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -201,7 +221,7 @@ public class Autonomous extends LinearOpMode    {
         double startTime = time;
 
         speed = Range.clip(speed, -1, 1);
-        //while (Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) + Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance) {
+        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
         while ((Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance)) {
             if (time > startTime + timeout) {
                 telemetry.addData("Last drive stop:", "Timeout!");
@@ -214,7 +234,6 @@ public class Autonomous extends LinearOpMode    {
             telemetry.addData("motorleft dist:", robot.leftMotor.getCurrentPosition() - startLPos);
             telemetry.addData("motorright dist:", robot.rightMotor.getCurrentPosition() - startRPos);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
-            telemetry.addData("gyro heading", orientation.thirdAngle);
             telemetry.addData("error", error);
 
             double right = speed + error;
@@ -238,8 +257,67 @@ public class Autonomous extends LinearOpMode    {
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
-       // robot.rightMotor.setPower(0.00);
-       // robot.leftMotor.setPower(0.00);
+        // robot.rightMotor.setPower(0.00);
+        // robot.leftMotor.setPower(0.00);
+        return (time < startTime + timeout);
+    }
+
+    public Boolean gyroTurn(double targetAngle, double speed, double timeout) {
+        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
+        robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        double startTime = time;
+
+        speed = Range.clip(speed, -1, 1);
+        if (speed < 0) {
+            speed = -speed; // Make sure we have a positive speed. The code handles whether speed should be negative
+        }
+
+        // Start the loop. loop ends if angle is reached or time runs out
+        while (time < startTime + timeout) {
+            Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            double angleDiff = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle);
+            telemetry.addData("Current z orientation:", orientation.thirdAngle);
+            telemetry.addData("Angle difference:", angleDiff);
+            double right = 0.0;
+            double left = 0.0;
+
+            if (Math.abs(angleDiff) < 5){
+                robot.rightMotor.setPower(0.0);
+                robot.rMotor.setPower(0.0);
+                robot.leftMotor.setPower(0.0);
+                robot.lMotor.setPower(0.0);
+                break;
+            }
+            else if (Math.abs(angleDiff) == angleDiff) { // Make a clockwise turn
+                right = speed;
+                left = -speed;
+            }
+            else if (Math.abs(angleDiff) != angleDiff) { // Turn counter clockwise
+                right = -speed;
+                left = speed;
+            }
+
+            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            robot.rightMotor.setPower(right);
+            robot.rMotor.setPower(right);
+            robot.leftMotor.setPower(left);
+            robot.lMotor.setPower(left);
+        }
+
+        robot.rightMotor.setPower(0.0);
+        robot.rMotor.setPower(0.0);
+        robot.leftMotor.setPower(0.0);
+        robot.lMotor.setPower(0.0);
+
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        // robot.rightMotor.setPower(0.00);
+        // robot.leftMotor.setPower(0.00);
         return (time < startTime + timeout);
     }
 
@@ -298,56 +376,56 @@ public class Autonomous extends LinearOpMode    {
         // At the beginning of each telemetry update, grab a bunch of data
         // from the IMU that we will then display in separate lines.
         telemetry.addAction(new Runnable() { @Override public void run()
-                {
-                // Acquiring the angles is relatively expensive; we don't want
-                // to do that in each of the three items that need that info, as that's
-                // three times the necessary expense.
-                angles   = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-                gravity  = imu.getGravity();
-                }
-            });
+        {
+            // Acquiring the angles is relatively expensive; we don't want
+            // to do that in each of the three items that need that info, as that's
+            // three times the necessary expense.
+            angles   = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+            gravity  = imu.getGravity();
+        }
+        });
 
         telemetry.addLine()
-            .addData("status", new Func<String>() {
-                @Override public String value() {
-                    return imu.getSystemStatus().toShortString();
+                .addData("status", new Func<String>() {
+                    @Override public String value() {
+                        return imu.getSystemStatus().toShortString();
                     }
                 })
-            .addData("calib", new Func<String>() {
-                @Override public String value() {
-                    return imu.getCalibrationStatus().toString();
+                .addData("calib", new Func<String>() {
+                    @Override public String value() {
+                        return imu.getCalibrationStatus().toString();
                     }
                 });
 
         telemetry.addLine()
-            .addData("heading", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(angles.angleUnit, angles.firstAngle);
+                .addData("heading", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.firstAngle);
                     }
                 })
-            .addData("roll", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(angles.angleUnit, angles.secondAngle);
+                .addData("roll", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.secondAngle);
                     }
                 })
-            .addData("pitch", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(angles.angleUnit, angles.thirdAngle);
+                .addData("pitch", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.thirdAngle);
                     }
                 });
 
         telemetry.addLine()
-            .addData("grvty", new Func<String>() {
-                @Override public String value() {
-                    return gravity.toString();
+                .addData("grvty", new Func<String>() {
+                    @Override public String value() {
+                        return gravity.toString();
                     }
                 })
-            .addData("mag", new Func<String>() {
-                @Override public String value() {
-                    return String.format(Locale.getDefault(), "%.3f",
-                            Math.sqrt(gravity.xAccel*gravity.xAccel
-                                    + gravity.yAccel*gravity.yAccel
-                                    + gravity.zAccel*gravity.zAccel));
+                .addData("mag", new Func<String>() {
+                    @Override public String value() {
+                        return String.format(Locale.getDefault(), "%.3f",
+                                Math.sqrt(gravity.xAccel*gravity.xAccel
+                                        + gravity.yAccel*gravity.yAccel
+                                        + gravity.zAccel*gravity.zAccel));
                     }
                 });
     }
