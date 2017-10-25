@@ -87,23 +87,18 @@ public class Autonomous extends LinearOpMode    {
 
     final int BLUE = 0;
     final int RED  = 1;
-
     final int LEFT   = -1;
     final int CENTER = -2;
     final int RIGHT  = -3;
 
-    private double strafingSpeed = 0;
+    final double TURN_SPEED = 0.3;
+    
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
     private double grabberRightMin = 0.25;
     private double grabberRightMax = 0.33;
 
     private int TEAMCOLOR = BLUE;
-
-    public static final String TAG = "Vuforia VuMark Sample";
-
-    OpenGLMatrix lastLocation = null;
-
 
     //----------------------------------------------------------------------------------------------
     // Main logic
@@ -171,7 +166,7 @@ public class Autonomous extends LinearOpMode    {
         else if (pictoKey == RIGHT) {
             gyroDrive(0, -0.5, 100, 5.0);
         }
-        gyroTurn(90, 0.25, 5.0);
+        gyroTurn(90, 5.0);
         sleep(500);
         robot.glyphGrabberLeft.setPosition(grabberLeftMax); // Release the glyph and score!
         robot.glyphGrabberRight.setPosition(grabberRightMin);
@@ -210,11 +205,11 @@ public class Autonomous extends LinearOpMode    {
     distance: The length we wish to travel
      */
     public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
-        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
+        // Set the motors to measure encoder counts.
         robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         int startRPos = robot.rightMotor.getCurrentPosition();
         int startLPos = robot.leftMotor.getCurrentPosition();
@@ -257,24 +252,28 @@ public class Autonomous extends LinearOpMode    {
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
-        // robot.rightMotor.setPower(0.00);
-        // robot.leftMotor.setPower(0.00);
+        robot.rightMotor.setPower(0.0);
+        robot.rMotor.setPower(0.0);
+        robot.leftMotor.setPower(0.0);
+        robot.lMotor.setPower(0.0);
+        
+        robot.rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (time < startTime + timeout);
     }
 
-    public Boolean gyroTurn(double targetAngle, double speed, double timeout) {
-        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
+    public Boolean gyroTurn(double targetAngle, double timeout) {
+        // Set the motors to measure encoder counts.
         robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         double startTime = time;
 
-        speed = Range.clip(speed, -1, 1);
-        if (speed < 0) {
-            speed = -speed; // Make sure we have a positive speed. The code handles whether speed should be negative
-        }
+        double speed = 0.0;
 
         // Start the loop. loop ends if angle is reached or time runs out
         while (time < startTime + timeout) {
@@ -282,27 +281,23 @@ public class Autonomous extends LinearOpMode    {
             double angleDiff = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
             telemetry.addData("Angle difference:", angleDiff);
+            telemetry.addData("Turning speed:", speed);
             double right = 0.0;
             double left = 0.0;
 
             if (Math.abs(angleDiff) < 5){
-                robot.rightMotor.setPower(0.0);
-                robot.rMotor.setPower(0.0);
-                robot.leftMotor.setPower(0.0);
-                robot.lMotor.setPower(0.0);
                 break;
             }
             else if (Math.abs(angleDiff) == angleDiff) { // Make a clockwise turn
+                speed = Range.clip(angleDiff/60, 0.1, TURN_SPEED);
                 right = speed;
                 left = -speed;
             }
             else if (Math.abs(angleDiff) != angleDiff) { // Turn counter clockwise
+                speed = Range.clip(angleDiff/60, -TURN_SPEED, -0.1);
                 right = -speed;
                 left = speed;
             }
-
-            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             robot.rightMotor.setPower(right);
             robot.rMotor.setPower(right);
@@ -315,9 +310,12 @@ public class Autonomous extends LinearOpMode    {
         robot.leftMotor.setPower(0.0);
         robot.lMotor.setPower(0.0);
 
+        robot.rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        
         telemetry.addData("Last drive stop:", "Loop complete!");
-        // robot.rightMotor.setPower(0.00);
-        // robot.leftMotor.setPower(0.00);
         return (time < startTime + timeout);
     }
 
