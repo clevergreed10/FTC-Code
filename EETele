@@ -1,396 +1,444 @@
-/**
- * Created by Team 9386 on 9/27/2016.
+/* Copyright (c) 2017 FIRST. All rights reserved.
  *
- * Updated and Rewritten 9/19/2017.
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted (subject to the limitations in the disclaimer below) provided that
+ * the following conditions are met:
  *
- * TODO - 10-10: Change strafing to Triggers, scale speed,
- * TODO - 10-10: Code glyph grabbers on X and B buttons
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of FIRST nor the names of its contributors may be used to endorse or
+ * promote products derived from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+ * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package org.firstinspires.ftc.teamcode;
 
-//import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.util.Range;
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.Func;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.robotcore.external.navigation.VuMarkInstanceId;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
-//import com.qualcomm.robotcore.hardware.DcMotor;
+import java.util.Locale;
 
+/**
+ * {@link Autonomous} gives a short demo on how to use the BNO055 Inertial Motion Unit (IMU) from AdaFruit.
+ *
+ * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
+ * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
+ *
+ * @see <a href="http://www.adafruit.com/products/2472">Adafruit IMU</a>
+ */
+//@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Sensor: BNO055 IMU", group = "Sensor")
+@Disabled                            // Comment this out to add to the opmode list
+public class Autonomous extends LinearOpMode    {
+    //----------------------------------------------------------------------------------------------
+    // State
+    //----------------------------------------------------------------------------------------------
 
-//import org.firstinspires.ftc.teamcode.HardwareEEbot;
+    HardwareEEBot robot = new HardwareEEBot();
 
+    // The IMU sensor object
+    BNO055IMU imu;
 
-@TeleOp(name="EEbot: Cap'sOp", group="EEbot") //this tells the new Driver Station (V11) which type of code this is.
-//@Disabled
-public class CapsOp extends OpMode {
+    // State used for updating telemetry .. unsure if necessary
+    Orientation angles;
+    Acceleration gravity;
 
-    int x = 0;
-    //ModernRoboticsTouchSensor touch = null;
-    /* Declare OpMode members. */
-    HardwareEEBot   robot           = new HardwareEEBot();// Use a EE bot hardware
-    //double          armPosition     = robot.ARM_HOME;                   // Servo safe position
-    //double          clawPosition    = robot.CLAW_HOME;                  // Servo safe position
-    //final double    CLAW_SPEED      = 0.01 ;                            // sets rate to move servo
-    //final double    ARM_SPEED       = 0.01 ;                            // sets rate to move servo
-    final private double    STRAFE_SPEED     = 0.25;                // The constant speed to strafe
+    //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
+    VuforiaLocalizer vuforia;
+    VuforiaTrackable relicTemplate;
+
+    final int BLUE = 0;
+    final int RED  = 1;
+
+    final int LEFT   = -1;
+    final int CENTER = -2;
+    final int RIGHT  = -3;
 
     private double strafingSpeed = 0;
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
     private double grabberRightMin = 0.25;
     private double grabberRightMax = 0.33;
-    private double grabberLeftPos;
-    private double grabberRightPos;
 
-    private int leftCounts = 0;
-    private int rightCounts = 0;
+    private int TEAMCOLOR = BLUE;
 
-    private boolean xDown = false;
-    private boolean aDown = false;
-    private boolean bDown = false;
-    private boolean toggleOverride = false; // The variable used to determine whether to set grabbers with x/a or y/b
-    private boolean grabberLeftDown = false;
-    private boolean grabberRightDown = false;
-    private boolean grabberAllDown = false;
-    boolean sweeperOn = false;
+    public static final String TAG = "Vuforia VuMark Sample";
 
-    /*
-     * Code to run ONCE when the driver hits INIT
-     */
-    @Override
-    public void init() {
-        /* Initialize the hardware variables.
-         * The init() method of the hardware class does all the work here
-         */
+    OpenGLMatrix lastLocation = null;
+
+
+    //----------------------------------------------------------------------------------------------
+    // Main logic
+    //----------------------------------------------------------------------------------------------
+
+    @Override public void runOpMode() {
         robot.init(hardwareMap);
 
-        grabberLeftPos = robot.glyphGrabberLeft.getPosition();
-        grabberRightPos = robot.glyphGrabberRight.getPosition();
+        // Set up the parameters with which we will use our IMU.
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        //parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-        //touch = (ModernRoboticsTouchSensor)hardwareMap.touchSensor.get("touch");
+        // The robot has been crashing during init phase, so we now initialize the imu inside our runOpMode()
+        robot.imu.initialize(parameters);
 
+        // Tell vuforia to show what the camera is seeing.
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters vuforiaParameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
-        //robot.flipper.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //robot.flipper.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // OR...  Do Not Activate the Camera Monitor View, to save power
+        // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-        // Set the glyph grabbers from starting position to ready position
-        //robot.glyphGrabberLeft.setPosition(0.5);
-        /*try {
-            wait(1000);
-        } catch(InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
+        // Joshua's license key
+        vuforiaParameters.vuforiaLicenseKey = "AdLORsH/////AAAAGSk7H7mSvUJng/rqnN96DDJxBj6Ir4uum2FxifkokX51jW5AIEmws+YcGEoLywmIHtl1ajCqCfQ1tIjgRVhYlFbYasGMvweedEqPzlifXfLf6uFwPKN82+OT/JpKhtJr7n6LTvh5EQERs9eDByNvprWy0vqb5CEUszHs4WA2zrsS7occZN6MLIQXSBlArbnWAGr879iJb6Toed/6TLgIrzDkH1mTiLmJ7ANsHoNkazcQeC+pvtfdylzd7n3Azds1+wo1X0CmM6o4vw2e31DslsnJNLHLxCWpWArSVHKrvPJS75jDUeHiyoi4qlOm3R2S8nElj94EIJ69R66Ofk0gxM2F/10Juk+z9p0UQ5jaYAU0";
+        // Chose which camera to use
+        vuforiaParameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        this.vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParameters);
+        /*
+         * Load the data set containing the VuMarks for Relic Recovery. There's only one trackable
+         * in this data set: all three of the VuMarks in the game were created from this one template,
+         * but differ in their instance id information.
+         * @see VuMarkInstanceId
+         */
+        VuforiaTrackables relicTrackables = this.vuforia.loadTrackablesFromAsset("RelicVuMark");
+        relicTemplate = relicTrackables.get(0);
+        relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
-*/
-        //wait(1000);
+        relicTrackables.activate();
 
-        //robot.glyphGrabberRight.setPosition(0.5);
-
-        // Send telemetry message to signify robot waiting;
-        telemetry.addData("Say", "Hello Driver");    //
-        updateTelemetry(telemetry);
-    }
-
-    /*
-     * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
-     */
-    @Override
-    public void init_loop() {
-        init();
-    }
-
-    /*
-     * Code to run ONCE when the driver hits PLAY22222222
-     */
-    @Override
-    public void start() {
-    }
-
-    /*
-     * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
-     */
-    @Override
-    public void loop() {
-
-        // GAMEPAD 1 CONTROLS \\
-        // If a bumper is down, strafe. Otherwise drive from left and right sticks
-
-        if (gamepad1.left_trigger > 0.1) {
-            // Strafe left
-            strafingSpeed = scaleInput(gamepad1.left_trigger);
-
-            telemetry.addData("Left bumper down!", strafingSpeed);
-            // Front left and back right motors go forwards.
-            robot.leftMotor.setPower(strafingSpeed * 0.75);
-            robot.rMotor.setPower(strafingSpeed);
-
-            // Front right and back left motors go backwards.
-            robot.rightMotor.setPower(-strafingSpeed * 0.75);
-            robot.lMotor.setPower(-strafingSpeed);
-        }
-        else if (gamepad1.right_trigger > 0.1){
-            // Strafe right
-            strafingSpeed = scaleInput(gamepad1.right_trigger);
-
-            telemetry.addData("Right trigger down!", strafingSpeed);
-            // Front right and back left motors go forwards.
-            robot.rightMotor.setPower(strafingSpeed * 0.75);
-            robot.lMotor.setPower(strafingSpeed );
-
-            // Front left and back right motors go backwards.
-            robot.leftMotor.setPower(-strafingSpeed * 0.75);
-            robot.rMotor.setPower(-strafingSpeed);
+        // Setup over, now run commands
+        robot.glyphGrabberLeft.setPosition(grabberLeftMin); // Close our grabber arms onto the glyph
+        robot.glyphGrabberRight.setPosition(grabberRightMax);
+        int pictoKey = findPictograph(10); // Does this yield or run on it's own?
+        boolean driveForward = jewelRun();
+        if (driveForward) {
+            gyroDrive(0, 0.25, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
         }
         else {
-            // Apply motor control
-            double rightPower = scaleInput(gamepad1.right_stick_y);
-            double leftPower  = scaleInput(gamepad1.left_stick_y);
-
-            telemetry.addData("rightPower", rightPower);
-            telemetry.addData("leftPower", leftPower);
-            // Set the two right motors to rightPower
-
-            robot.rightMotor.setPower(rightPower/2);
-            robot.rMotor.setPower(rightPower/2);
-
-            // Set the two left motors to rightPower
-
-            robot.leftMotor.setPower(leftPower/2);
-            robot.lMotor.setPower(leftPower/2);
+            gyroDrive(0, -0.25, 50, 1.0);
+            sleep(100); // Ensure we come to a complete stop.
+            gyroDrive(0, 0.25, 100, 1.0); // Drive to the position we would be at if we had gone backwards
         }
 
-        if (Math.abs(gamepad2.left_stick_y) > 0.1) {
-            double spoolSpeed = scaleInput(gamepad2.left_stick_y);
-            robot.spool.setPower(spoolSpeed);
+        telemetry.addData("Prepare to drive!", " Forward");
+        sleep(1000); // For debug
+        gyroDrive(0, 0.5, 500, 5.0); // Drive to the center of the cryptobox, then go backwards or forwards if the pictograph is left or right respectively.
+        if (pictoKey == LEFT) {
+            gyroDrive(0, 0.5, 100, 5.0);
         }
-        else {
-            robot.spool.setPower(0);
+        else if (pictoKey == RIGHT) {
+            gyroDrive(0, -0.5, 100, 5.0);
         }
+        gyroTurn(90, 0.25, 5.0);
+        sleep(500);
+        robot.glyphGrabberLeft.setPosition(grabberLeftMax); // Release the glyph and score!
+        robot.glyphGrabberRight.setPosition(grabberRightMin);
+        // Our robot should be inside the safezone at this point and our autonomous will end
+        // In the future we are going to play around with grabbing more glyphs off the field in autonomous
+    }
+
+    /* Function to lower the jewel arm and sense the color
+     Returning true means to drive forward (direction of color sensor)
+     Returning false means the opposite
+     */
+    boolean jewelRun(){
+        robot.jewelArm.setPosition(1.0);
+        boolean goForward = false;
+        sleep(500);
+        telemetry.addData("Red: ", robot.jewelSensorColor.red());
+        telemetry.addData("Blue: ", robot.jewelSensorColor.blue());
         telemetry.update();
-
-
-        if (gamepad1.y){
-            robot.rMotor.setPower(-0.5);
-            robot.rightMotor.setPower(-0.5);
-            robot.leftMotor.setPower(-0.5);
-            robot.lMotor.setPower(-0.5);
-        }
-
-        if (gamepad1.a){
-            robot.rMotor.setPower(0.5);
-            robot.rightMotor.setPower(0.5);
-            robot.leftMotor.setPower(0.5);
-            robot.lMotor.setPower(0.5);
-        }
-
-
-        if (gamepad2.dpad_up){
-            robot.glyphGrabberLeft.setPosition(0.05);
-            robot.glyphGrabberRight.setPosition(0.95);
-        }
-
-        if (gamepad2.dpad_down){
-            robot.glyphGrabberLeft.setPosition(0.95);
-            robot.glyphGrabberRight.setPosition(0.05);
-        }
-
-        // GAMEPAD 2 CONTROLS \\
-
-        // MANUAL GRABBER ADJUST
-        double currentLeftPos = robot.glyphGrabberLeft.getPosition();
-        double currentRightPos = robot.glyphGrabberRight.getPosition();
-
-        if (gamepad2.y){
-            // Manually CLOSE the grabbers
-            // Close left if it's not too far already
-            if (currentLeftPos <= grabberLeftMin) {
-                telemetry.addData("Grabber left not adjusted.", currentLeftPos);
-                grabberLeftPos = grabberLeftMin;
+        if (robot.jewelSensorColor.red() > 1) {
+            // Direct ball is red
+            if (TEAMCOLOR == RED) {
+                goForward = true;
             }
             else {
-                telemetry.addData("Adjusting grabber left.", currentLeftPos);
-                grabberLeftPos = currentLeftPos - 0.002;
+                goForward = false; // This is probably redundant
+            }
+        }
+        robot.jewelArm.setPosition(0.1); // We need to measure exactly where to set the arm position
+        return goForward;
+    }
+
+    /*
+    Drive by gyro function, drives the robot a given length keeping within a certain angle
+    targetAngle: The angle we wish to stay on
+    speed: The speed of the motors. Unlike last year, -speed means you go backwards.
+    distance: The length we wish to travel
+     */
+    public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
+        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
+        robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        int startRPos = robot.rightMotor.getCurrentPosition();
+        int startLPos = robot.leftMotor.getCurrentPosition();
+        double startTime = time;
+
+        speed = Range.clip(speed, -1, 1);
+        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
+        while ((Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance)) {
+            if (time > startTime + timeout) {
+                telemetry.addData("Last drive stop:", "Timeout!");
+                break;
             }
 
-            // Close right if it's not too far already
-            if (currentRightPos >= grabberRightMax) {
-                telemetry.addData("Grabber right not adjusted.", currentRightPos);
-                grabberRightPos = grabberRightMax;
+            Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
+
+            telemetry.addData("motorleft dist:", robot.leftMotor.getCurrentPosition() - startLPos);
+            telemetry.addData("motorright dist:", robot.rightMotor.getCurrentPosition() - startRPos);
+            telemetry.addData("Current z orientation:", orientation.thirdAngle);
+            telemetry.addData("error", error);
+
+            double right = speed + error;
+            double left = speed - error;
+
+            if (speed < 0) {
+                right = Range.clip(right, -1, 1);
+                left = Range.clip(left, -1, 1);
+            } else {
+                right = Range.clip(right, -1, 1);
+                left = Range.clip(left, -1, 1);
+            }
+
+            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            robot.rightMotor.setPower(right);
+            robot.rMotor.setPower(right);
+            robot.leftMotor.setPower(left);
+            robot.lMotor.setPower(left);
+        }
+
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        // robot.rightMotor.setPower(0.00);
+        // robot.leftMotor.setPower(0.00);
+        return (time < startTime + timeout);
+    }
+
+    public Boolean gyroTurn(double targetAngle, double speed, double timeout) {
+        // Set the motors to measure encoder counts, right now we only use front, but we may need to change that
+        robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        
+        double startTime = time;
+
+        speed = Range.clip(speed, -1, 1);
+        if (speed < 0) {
+            speed = -speed; // Make sure we have a positive speed. The code handles whether speed should be negative
+        }
+        
+        // Start the loop. loop ends if angle is reached or time runs out
+        while (time < startTime + timeout) {
+            Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            double angleDiff = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle);
+            telemetry.addData("Current z orientation:", orientation.thirdAngle);
+            telemetry.addData("Angle difference:", angleDiff);
+            double right = 0.0;
+            double left = 0.0;
+            
+            if (Math.abs(angleDiff) < 5){
+                robot.rightMotor.setPower(0.0);
+                robot.rMotor.setPower(0.0);
+                robot.leftMotor.setPower(0.0);
+                robot.lMotor.setPower(0.0);
+                break;
+            }
+            else if (Math.abs(angleDiff) == angleDiff) { // Make a clockwise turn
+                right = speed;
+                left = -speed;
+            }
+            else if (Math.abs(angleDiff) != angleDiff) { // Turn counter clockwise
+                right = -speed;
+                left = speed;
+            }
+
+            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            robot.rightMotor.setPower(right);
+            robot.rMotor.setPower(right);
+            robot.leftMotor.setPower(left);
+            robot.lMotor.setPower(left);
+        }
+        
+        robot.rightMotor.setPower(0.0);
+        robot.rMotor.setPower(0.0);
+        robot.leftMotor.setPower(0.0);
+        robot.lMotor.setPower(0.0);
+        
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        // robot.rightMotor.setPower(0.00);
+        // robot.leftMotor.setPower(0.00);
+        return (time < startTime + timeout);
+    }
+
+    // Function find get the pictograph value at the start of autonomous
+    // timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
+    private int findPictograph(double timeout) {
+        double startTime = time;
+
+        while (opModeIsActive()) {
+            if (time > startTime + timeout) {
+                break;
+            }
+
+            /**
+             * See if any of the instances of {@link relicTemplate} are currently visible.
+             * {@link RelicRecoveryVuMark} is an enum which can have the following values:
+             * UNKNOWN, LEFT, CENTER, and RIGHT. When a VuMark is visible, something other than
+             * UNKNOWN will be returned by {@link RelicRecoveryVuMark#from(VuforiaTrackable)}.
+             */
+            RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(relicTemplate);
+            if (vuMark != RelicRecoveryVuMark.UNKNOWN) {
+
+                // Found an instance of the template.
+                telemetry.addData("VuMark", "%s visible", vuMark);
+                if (vuMark == RelicRecoveryVuMark.LEFT) {
+                    return LEFT;
+                }
+                else if (vuMark == RelicRecoveryVuMark.CENTER) {
+                    return CENTER;
+                }
+                else if (vuMark == RelicRecoveryVuMark.RIGHT) {
+                    return RIGHT;
+                }
             }
             else {
-                telemetry.addData("Adjusting grabber right.", currentRightPos);
-                grabberRightPos = currentRightPos + 0.002;
+                telemetry.addData("VuMark", "not visible");
             }
+            telemetry.update();
         }
-        else if (gamepad2.b) {
-            // Manually RELEASE the grabbers
-
-            // Close left if it's not too far already
-            if (currentLeftPos >= grabberLeftMax) {
-                telemetry.addData("Grabber left not adjusted.", currentLeftPos);
-                grabberLeftPos = grabberLeftMax;
-            }
-            else {
-                telemetry.addData("Adjusting grabber left.", currentLeftPos);
-                grabberLeftPos = currentLeftPos + 0.002;
-            }
-
-            // Close right if it's not too far already
-            if (currentRightPos <= grabberRightMin) {
-                telemetry.addData("Grabber right not adjusted.", currentRightPos);
-                grabberRightPos = grabberRightMin;
-            }
-            else {
-                telemetry.addData("Adjusting grabber right.", currentRightPos);
-                grabberRightPos = currentRightPos - 0.002;
-            }
-        }
-
-        // TOGGLE GRABBERS
-        if (gamepad2.x){
-            if (!xDown){
-                grabberLeftDown = !grabberLeftDown;
-                xDown = true;
-                if (grabberLeftDown) {
-                    grabberLeftPos = grabberLeftMin;
-                }
-                else {
-                    grabberLeftPos = grabberLeftMax;
-                }
-            }
-        }
-        else {
-            xDown = false;
-        }
-
-        if (gamepad2.a){
-            if (!aDown) {
-                grabberRightDown = !grabberRightDown;
-                aDown = true;
-                if (grabberRightDown) {
-                    grabberRightPos = grabberRightMin;
-                }
-                else {
-                    grabberRightPos = grabberRightMax;
-                }
-            }
-        }
-        else{
-            aDown = false;
-        }
-
-        if (gamepad2.right_bumper){
-            if (!bDown) {
-                grabberAllDown = !grabberAllDown;
-                bDown = true;
-                if (grabberAllDown) {
-                    grabberRightPos = grabberRightMin;
-                    grabberLeftPos = grabberLeftMin;
-                }
-                else {
-                    grabberRightPos = grabberRightMax;
-                    grabberLeftPos = grabberLeftMax;
-                }
-            }
-        }
-        else {
-            bDown = false;
-        }
-
+        telemetry.addData("Cipher not found", CENTER);
         telemetry.update();
+        return CENTER; // No vumark was found within the timeout period, so we'll just return center (1/3 chance of getting it right)
+    }
 
-        // Logic to set the grabber positions
-        //These are the right positions for the new REV servos
-        robot.glyphGrabberLeft.setPosition(grabberLeftPos);
-        robot.glyphGrabberRight.setPosition(grabberRightPos);
-//        if (grabberLeftDown) {
-//            robot.glyphGrabberLeft.setPosition(0.48);
-//        }
-//        else {
-//            robot.glyphGrabberLeft.setPosition(0.70);
-//        }
-//
-//        if (grabberRightDown){
-//            robot.glyphGrabberRight.setPosition(0.33);
-//        }
-//        else {
-//            robot.glyphGrabberRight.setPosition(0.20);
-//        }
-
-
-        //else {                              // else do nothing
-        //robot.secondBestServo.setPosition(0.51);
-        //   robot.bestServo.setPosition(0.52);
-        //
-
-
-        //if (gamepad1.dpad_left){
-        //    robot.clicker.setPosition(0.50);
-        //}
-
-        //if (gamepad1.dpad_right){
-        //   robot.clickerTwo.setPosition(0.50);
-        //}
-
-        //if (gamepad1.left_bumper){
-        //    robot.spool.setPower(-0.50);
-        //}
-
-        //if (gamepad1.right_bumper){
-        //    robot.spool.setPower(0.50);
-        //}
-
-
-
-        //if (gamepad1.a) {
-
-        //  robot.flipper.setPower(1);
-        //robot.flipper.setTargetPosition(1440); //setting target value for flipper
-
-        //} else {
-        //  robot.flipper.setPower(0);
-        //}
-
-
-        //else if (gamepad1.a) {            // if a is pressed, full power backward
-
-        //motorRight.setPower(1.00);
-        //  motorLeft.setPower(-1.00);
-
-        //}
-
-        Thread.yield();
+    String format(OpenGLMatrix transformationMatrix) {
+        return (transformationMatrix != null) ? transformationMatrix.formatAsTransform() : "null";
     }
 
 
-    double scaleInput(double dVal)  {
-//        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-//                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
-        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-              0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
+    //----------------------------------------------------------------------------------------------
+    // Telemetry Configuration
+    //----------------------------------------------------------------------------------------------
 
-        // get the corresponding index for the scaleInput array.
-        int index = (int) (dVal * 16.0);
+    void composeTelemetry() {
 
-        // index should be positive.
-        if(index < 0){
-            index = -index;
+        // At the beginning of each telemetry update, grab a bunch of data
+        // from the IMU that we will then display in separate lines.
+        telemetry.addAction(new Runnable() { @Override public void run()
+        {
+            // Acquiring the angles is relatively expensive; we don't want
+            // to do that in each of the three items that need that info, as that's
+            // three times the necessary expense.
+            angles   = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+            gravity  = imu.getGravity();
         }
+        });
 
+        telemetry.addLine()
+                .addData("status", new Func<String>() {
+                    @Override public String value() {
+                        return imu.getSystemStatus().toShortString();
+                    }
+                })
+                .addData("calib", new Func<String>() {
+                    @Override public String value() {
+                        return imu.getCalibrationStatus().toString();
+                    }
+                });
 
-        // index cannot exceed size of array minus 1.
-        if (index > 16) {
-            index = 16;
-        }
+        telemetry.addLine()
+                .addData("heading", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.firstAngle);
+                    }
+                })
+                .addData("roll", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.secondAngle);
+                    }
+                })
+                .addData("pitch", new Func<String>() {
+                    @Override public String value() {
+                        return formatAngle(angles.angleUnit, angles.thirdAngle);
+                    }
+                });
 
-        // get value from the array.
-        double dScale = 0.0;
-        if (dVal < 0) {
-            dScale = -scaleArray[index];
-        } else {
-            dScale = scaleArray[index];
-        }
+        telemetry.addLine()
+                .addData("grvty", new Func<String>() {
+                    @Override public String value() {
+                        return gravity.toString();
+                    }
+                })
+                .addData("mag", new Func<String>() {
+                    @Override public String value() {
+                        return String.format(Locale.getDefault(), "%.3f",
+                                Math.sqrt(gravity.xAccel*gravity.xAccel
+                                        + gravity.yAccel*gravity.yAccel
+                                        + gravity.zAccel*gravity.zAccel));
+                    }
+                });
+    }
 
-        // return scaled value.
-        return dScale;
+    //----------------------------------------------------------------------------------------------
+    // Formatting
+    //----------------------------------------------------------------------------------------------
+
+    String formatAngle(AngleUnit angleUnit, double angle) {
+        return formatDegrees(AngleUnit.DEGREES.fromUnit(angleUnit, angle));
+    }
+
+    String formatDegrees(double degrees){
+        return String.format(Locale.getDefault(), "%.1f", AngleUnit.DEGREES.normalize(degrees));
     }
 }
