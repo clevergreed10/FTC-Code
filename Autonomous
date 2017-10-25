@@ -92,7 +92,7 @@ public class Autonomous extends LinearOpMode    {
     final int RIGHT  = -3;
 
     final double TURN_SPEED = 0.3;
-    
+
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
     private double grabberRightMin = 0.25;
@@ -146,8 +146,10 @@ public class Autonomous extends LinearOpMode    {
         // Setup over, now run commands
         robot.glyphGrabberLeft.setPosition(grabberLeftMin); // Close our grabber arms onto the glyph
         robot.glyphGrabberRight.setPosition(grabberRightMax);
-        int pictoKey = findPictograph(10); // Does this yield or run on it's own?
+
+        int pictoKey = findPictograph(2); // Does this yield or run on it's own?
         boolean driveForward = jewelRun();
+
         if (driveForward) {
             gyroDrive(0, 0.25, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
         }
@@ -174,9 +176,10 @@ public class Autonomous extends LinearOpMode    {
         // In the future we are going to play around with grabbing more glyphs off the field in autonomous
     }
 
-    /* Function to lower the jewel arm and sense the color
-     Returning true means to drive forward (direction of color sensor)
-     Returning false means the opposite
+    /*
+    Function to lower the jewel arm and sense the color
+    Returning true means to drive forward (direction of color sensor)
+    Returning false means to drive backwards
      */
     boolean jewelRun(){
         robot.jewelArm.setPosition(1.0);
@@ -187,14 +190,14 @@ public class Autonomous extends LinearOpMode    {
         telemetry.update();
         if (robot.jewelSensorColor.red() > 1) {
             // Direct ball is red
-            if (TEAMCOLOR == RED) {
+            if (TEAMCOLOR == BLUE) {
                 goForward = true;
             }
             else {
                 goForward = false; // This is probably redundant
             }
         }
-        robot.jewelArm.setPosition(0.1); // We need to measure exactly where to set the arm position
+        robot.jewelArm.setPosition(0.1); // We need to measure exactly where to set the arm position after reading the values
         return goForward;
     }
 
@@ -256,7 +259,7 @@ public class Autonomous extends LinearOpMode    {
         robot.rMotor.setPower(0.0);
         robot.leftMotor.setPower(0.0);
         robot.lMotor.setPower(0.0);
-        
+
         robot.rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -264,6 +267,11 @@ public class Autonomous extends LinearOpMode    {
         return (time < startTime + timeout);
     }
 
+    /*
+    Function to turn our robot.
+    targetAngle is the angle we wish to turn to
+    timeout is the max time we can be attempting to turn to that angle
+     */
     public Boolean gyroTurn(double targetAngle, double timeout) {
         // Set the motors to measure encoder counts.
         robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -314,13 +322,15 @@ public class Autonomous extends LinearOpMode    {
         robot.rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        
+
         telemetry.addData("Last drive stop:", "Loop complete!");
         return (time < startTime + timeout);
     }
 
-    // Function find get the pictograph value at the start of autonomous
-    // timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
+    /*
+    Function find get the pictograph value at the start of autonomous
+    timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
+    */
     private int findPictograph(double timeout) {
         double startTime = time;
 
@@ -359,6 +369,9 @@ public class Autonomous extends LinearOpMode    {
         telemetry.update();
         return CENTER; // No vumark was found within the timeout period, so we'll just return center (1/3 chance of getting it right)
     }
+
+
+    // MISCELLANEOUS FUNCTIONS
 
     String format(OpenGLMatrix transformationMatrix) {
         return (transformationMatrix != null) ? transformationMatrix.formatAsTransform() : "null";
