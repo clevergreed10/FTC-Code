@@ -65,13 +65,12 @@ import java.util.Locale;
  *
  * @see <a href="http://www.adafruit.com/products/2472">Adafruit IMU</a>
  */
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Sensor: BNO055 IMU", group = "Sensor")
+//@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Sensor: BNO055 IMU", group = "Sensor")
 @Disabled                            // Comment this out to add to the opmode list
-public class Autonomous extends LinearOpMode {
+public class Autonomous extends LinearOpMode    {
     //----------------------------------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------------------------------
-
 
     HardwareEEBot robot = new HardwareEEBot();
 
@@ -82,13 +81,10 @@ public class Autonomous extends LinearOpMode {
     Orientation angles;
     Acceleration gravity;
 
-    OpenGLMatrix lastLocation = null;
-
     //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
 
     VuforiaLocalizer vuforia;
     VuforiaTrackable relicTemplate;
-
 
     final int BLUE = 0;
     final int RED  = 1;
@@ -97,34 +93,52 @@ public class Autonomous extends LinearOpMode {
     final int CENTER = -2;
     final int RIGHT  = -3;
 
-    private int TEAMCOLOR = BLUE; // Blue for debug purposes, will eventually be null initially and set by a button
+    private int TEAMCOLOR = BLUE;
+
+    public static final String TAG = "Vuforia VuMark Sample";
+
+    OpenGLMatrix lastLocation = null;
+
 
     //----------------------------------------------------------------------------------------------
     // Main logic
     //----------------------------------------------------------------------------------------------
 
     @Override public void runOpMode() {
-/*
-         * To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
+
+        robot.init(hardwareMap);
+
+        // Set up the parameters with which we will use our IMU.
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        robot.imu.initialize(parameters);
+
+        /*To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
          * If no camera monitor is desired, use the parameterless constructor instead (commented out below).
          * We will probably turn off monitor once we get vuforia down.
-         */
+        */
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+        VuforiaLocalizer.Parameters vuforiaParameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
         // OR...  Do Not Activate the Camera Monitor View, to save power
         // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-        // IMPORTANT: GET UPDATED LICENSE KEY!!!!
-        parameters.vuforiaLicenseKey = "AUo9rlT/////AAAAGe2zjReuIEMDtC0KIDm3i7s8yaOmjF2DN7T97zzidTTkwq4JVwJxpvmN7s3ypFxLXMQSCTW/j33tTITrCwe/u0825T6jAEjJahSwL8wt1kVRW1kLD+Un+6V8QKmT/j1MGi8iq1lMxlEiXVwK/AcdfLOtKZVbFdKJ9Sh39eGPwWI0CTYfralUCM6nPAmLgo4rV3+RfEpLpFtFU49keW3190y88z+sYCRsUfwdIo5RLmVZgl+5V41QR0QUcVBsP43OcJJhjd7cvIs9HoiW2feL8W3+pgNefdPNNSKjzbOZHGV5/4mH1bhP0JMeKl0N++1EBvm8ZGVhnNfWxwRzJNmmQuEELfXFRaHQQi5RQdvvWp0Z";
+        // Joshua's license key
+        vuforiaParameters.vuforiaLicenseKey = "AdLORsH/////AAAAGSk7H7mSvUJng/rqnN96DDJxBj6Ir4uum2FxifkokX51jW5AIEmws+YcGEoLywmIHtl1ajCqCfQ1tIjgRVhYlFbYasGMvweedEqPzlifXfLf6uFwPKN82+OT/JpKhtJr7n6LTvh5EQERs9eDByNvprWy0vqb5CEUszHs4WA2zrsS7occZN6MLIQXSBlArbnWAGr879iJb6Toed/6TLgIrzDkH1mTiLmJ7ANsHoNkazcQeC+pvtfdylzd7n3Azds1+wo1X0CmM6o4vw2e31DslsnJNLHLxCWpWArSVHKrvPJS75jDUeHiyoi4qlOm3R2S8nElj94EIJ69R66Ofk0gxM2F/10Juk+z9p0UQ5jaYAU0";
 
         /*
          * We also indicate which camera on the RC that we wish to use.
          * Here we chose the back (HiRes) camera (for greater range), but
          * for a competition robot, the front camera might be more convenient.
          */
-        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
-        this.vuforia = ClassFactory.createVuforiaLocalizer(parameters);
+        vuforiaParameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        this.vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParameters);
 
         /**
          * Load the data set containing the VuMarks for Relic Recovery. There's only one trackable
@@ -137,13 +151,19 @@ public class Autonomous extends LinearOpMode {
         relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
         relicTrackables.activate();
+
+        // Setup over, now run commands
+        findPictograph(10);
+        telemetry.addData("Prepare to drive!", " Forward");
+        telemetry.update();
+        sleep(10000);
+        gyroDrive(0, 0.5, 70, 5);
     }
 
     // Function to lower the jewel arm and sense the color
     // Returning true means to drive forward (direction of color sensor)
     // Returning false means the opposite
-    boolean jewelRun() {
-
+    /*boolean jewelRun() {
         robot.jewelArm.setPosition(1.0);
 
         telemetry.addData("Red: ", robot.jewelSensorColor.red());
@@ -165,66 +185,42 @@ public class Autonomous extends LinearOpMode {
             } else {
                 return true;
             }
-        }
-    }
+        }*/
+    //}
 
-    // Basic drive function
-    public boolean drive (double rightSpeed, double leftSpeed, double distance, double timeout) throws InterruptedException {
-        int startRPos = robot.rightMotor.getCurrentPosition();
-        int startLPos = robot.leftMotor.getCurrentPosition();
-        double startTime = time;
+    public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
 
-        while (Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) + Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance) {
-            if (time > startTime + timeout) {
-                telemetry.addData("Last drive stop:", "Timeout!");
-                break;
-            }
-
-            robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-            robot.rightMotor.setPower(rightSpeed);
-            robot.leftMotor.setPower(leftSpeed);
-
-
-            //telemetry.addData("gyro heading", gyro.getHeading());
-            //telemetry.addData("left_encoder", motorleft.getCurrentPosition());
-            //telemetry.addData("right_encoder", motorright.getCurrentPosition());
-            //telemetry.addData("error", error);
-
-        }
-
-        telemetry.addData("Last drive stop:", "Loop complete!");
-        robot.rightMotor.setPower(0.00);
-        robot.leftMotor.setPower(0.00);
-        return (time < startTime + timeout);
-    }
-
-    public boolean gyroDrive(double targetAngle, double throttle, double distance, double timeout) throws InterruptedException {
+        // Set the motors to measure encoder counts
+        robot.rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         int startRPos = robot.rightMotor.getCurrentPosition();
         int startLPos = robot.leftMotor.getCurrentPosition();
         double startTime = time;
 
-        while (Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) + Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance) {
+        speed = Range.clip(speed, -1, 1);
+        //while (Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) + Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance) {
+        while ((Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance)) {
             if (time > startTime + timeout) {
                 telemetry.addData("Last drive stop:", "Timeout!");
                 break;
             }
 
-            //telemetry.addData("motorleft", motorleft.getCurrentPosition() - startLPos);
-            //telemetry.addData("motorright", motorright.getCurrentPosition() - startRPos);
             Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
-
             double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
-            //double error = ((gyro.getHeading() > 180 ? gyro.getHeading() - 360 : gyro.getHeading()) - targetAngle) / (25.0);
 
-            throttle = Range.clip(throttle, -1, 1);
+            telemetry.addData("motorleft dist:", robot.leftMotor.getCurrentPosition() - startLPos);
+            telemetry.addData("motorright dist:", robot.rightMotor.getCurrentPosition() - startRPos);
+            telemetry.addData("Current z orientation:", orientation.thirdAngle);
+            telemetry.addData("gyro heading", orientation.thirdAngle);
+            telemetry.addData("error", error);
 
-            double right = throttle + error;
-            double left = throttle - error;
+            double right = speed + error;
+            double left = speed - error;
 
-            if (throttle < 0) {
+            if (speed < 0) {
                 right = Range.clip(right, -1, 1);
                 left = Range.clip(left, -1, 1);
             } else {
@@ -232,29 +228,24 @@ public class Autonomous extends LinearOpMode {
                 left = Range.clip(left, -1, 1);
             }
 
-            robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             robot.rightMotor.setPower(right);
+            robot.rMotor.setPower(right);
             robot.leftMotor.setPower(left);
-
-
-            //telemetry.addData("gyro heading", gyro.getHeading());
-            //telemetry.addData("left_encoder", motorleft.getCurrentPosition());
-            //telemetry.addData("right_encoder", motorright.getCurrentPosition());
-            //telemetry.addData("error", error);
-
+            robot.lMotor.setPower(left);
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
-        robot.rightMotor.setPower(0.00);
-        robot.leftMotor.setPower(0.00);
+       // robot.rightMotor.setPower(0.00);
+       // robot.leftMotor.setPower(0.00);
         return (time < startTime + timeout);
     }
 
-    // Function find get the cipher value at the start of autonomous
+    // Function find get the pictograph value at the start of autonomous
     // timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
-    public int findCipher(double timeout) {
+    private int findPictograph(double timeout) {
         double startTime = time;
 
         while (opModeIsActive()) {
@@ -288,11 +279,19 @@ public class Autonomous extends LinearOpMode {
             }
             telemetry.update();
         }
+        telemetry.addData("Cipher not found", CENTER);
+        telemetry.update();
         return CENTER; // No vumark was found within the timeout period, so we'll just return center (1/3 chance of getting it right)
     }
+
+    String format(OpenGLMatrix transformationMatrix) {
+        return (transformationMatrix != null) ? transformationMatrix.formatAsTransform() : "null";
+    }
+
+
     //----------------------------------------------------------------------------------------------
-// Telemetry Configuration
-//----------------------------------------------------------------------------------------------
+    // Telemetry Configuration
+    //----------------------------------------------------------------------------------------------
 
     void composeTelemetry() {
 
