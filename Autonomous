@@ -31,16 +31,15 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Func;
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
@@ -49,25 +48,24 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
-import org.firstinspires.ftc.robotcore.external.navigation.VuMarkInstanceId;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 import java.util.Locale;
 
 /**
- * {@link Autonomous} gives a short demo on how to use the BNO055 Inertial Motion Unit (IMU) from AdaFruit.
+ * {@link SensorBNO055IMU3} gives a short demo on how to use the BNO055 Inertial Motion Unit (IMU) from AdaFruit.
  *
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  *
  * @see <a href="http://www.adafruit.com/products/2472">Adafruit IMU</a>
  */
-//@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Sensor: BNO055 IMU", group = "Sensor")
-@Disabled                            // Comment this out to add to the opmode list
-public class Autonomous extends LinearOpMode    {
+@Autonomous(name = "Red2", group = "Autonomous")
+//@Disabled                            // Comment this out to add to the opmode list
+public class AutonomousRed extends LinearOpMode
+{
     //----------------------------------------------------------------------------------------------
     // State
     //----------------------------------------------------------------------------------------------
@@ -75,11 +73,9 @@ public class Autonomous extends LinearOpMode    {
     HardwareEEBot robot = new HardwareEEBot();
 
     // The IMU sensor object
-    BNO055IMU imu;
+    //BNO055IMU imu;
 
     // State used for updating telemetry .. unsure if necessary
-    Orientation angles;
-    Acceleration gravity;
 
     //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
     VuforiaLocalizer vuforia;
@@ -91,35 +87,89 @@ public class Autonomous extends LinearOpMode    {
     final int CENTER = -2;
     final int RIGHT  = -3;
 
-    final double TURN_SPEED = 0.3;
+    final double TURN_SPEED = 0.2;
 
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
     private double grabberRightMin = 0.25;
     private double grabberRightMax = 0.33;
 
-    private int TEAMCOLOR = BLUE;
+    private int TEAMCOLOR = RED;
+    // The IMU sensor object
+    BNO055IMU imu;
+
+    // State used for updating telemetry
+    Orientation angles;
+    Acceleration gravity;
+
+    /*public DcMotor  leftMotor   = null;
+    public DcMotor  rightMotor  = null;
+    public DcMotor  lMotor   = null;
+    public DcMotor  rMotor  = null;
+
+    public Servo jewelArm = null;
+    public Servo glyphGrabberLeft = null;
+    public Servo glyphGrabberRight = null;
+
+    ColorSensor jewelSensorColor;*/
+
 
     //----------------------------------------------------------------------------------------------
     // Main logic
     //----------------------------------------------------------------------------------------------
 
     @Override public void runOpMode() {
-        robot.init(hardwareMap);
 
-        // Set up the parameters with which we will use our IMU.
+        // Set up the parameters with which we will use our IMU. Note that integration
+        // algorithm here just reports accelerations to the logcat log; it doesn't actually
+        // provide positional information.
+        robot.init(hardwareMap);
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        //parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
         parameters.loggingEnabled      = true;
         parameters.loggingTag          = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-        // The robot has been crashing during init phase, so we now initialize the imu inside our runOpMode()
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        //imu = hardwareMap.get(BNO055IMU.class, "imu");
         robot.imu.initialize(parameters);
 
-        // Tell vuforia to show what the camera is seeing.
+       /* // Set up our telemetry dashboard
+        composeTelemetry();
+
+        leftMotor   = hardwareMap.dcMotor.get("motor_left");
+        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftMotor.setPower(0);
+
+        rightMotor  = hardwareMap.dcMotor.get("motor_right");
+        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightMotor.setDirection(DcMotor.Direction.REVERSE);
+        rightMotor.setPower(0);
+
+        //sweeper = hwMap.dcMotor.get("sweeper");
+
+        lMotor   = hardwareMap.dcMotor.get("motor_left2");
+        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        lMotor.setPower(0);
+
+        rMotor  = hardwareMap.dcMotor.get("motor_right2");
+        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rMotor.setDirection(DcMotor.Direction.REVERSE);
+        rMotor.setPower(0);
+
+        jewelSensorColor = hardwareMap.get(ColorSensor.class, "sensor_color_distance");
+        jewelSensorColor.enableLed(true);
+
+        jewelArm = hardwareMap.servo.get("jewelArm");
+        glyphGrabberLeft = hardwareMap.get(Servo.class, "glyphGrabberLeft");
+        glyphGrabberRight = hardwareMap.get(Servo.class, "glyphGrabberRight");*/
+
+        Boolean score = true;
+
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         VuforiaLocalizer.Parameters vuforiaParameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
@@ -143,48 +193,73 @@ public class Autonomous extends LinearOpMode    {
 
         relicTrackables.activate();
 
+        // Wait until we're told to go
+        waitForStart();
+
+        telemetry.update();
+        // Tell vuforia to show what the camera is seeing.
+
         // Setup over, now run commands
         robot.glyphGrabberLeft.setPosition(grabberLeftMin); // Close our grabber arms onto the glyph
         robot.glyphGrabberRight.setPosition(grabberRightMax);
 
+        sleep(2000);
+        robot.jewelSensorColor.enableLed(true);
         int pictoKey = findPictograph(2); // Does this yield or run on it's own?
         boolean driveForward = jewelRun();
 
+        sleep(2000);
+
         if (driveForward) {
-            gyroDrive(0, 0.25, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
+            score = gyroDrive(0, -0.25, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
+            robot.jewelArm.setPosition(0.5);
         }
         else {
-            gyroDrive(0, -0.25, 50, 1.0);
-            sleep(100); // Ensure we come to a complete stop.
-            gyroDrive(0, 0.25, 100, 1.0); // Drive to the position we would be at if we had gone backwards
+            score = gyroDrive(0, 0.25, 100, 1.0);
+            robot.jewelArm.setPosition(0.5);
+            sleep(2000); // Ensure we come to a complete stop.
+            score = gyroDrive(0, -0.25, 400, 1.0); // Drive to the position we would be at if we had gone backwards
         }
 
-        telemetry.addData("Prepare to drive!", " Forward");
-        sleep(1000); // For debug
-        gyroDrive(0, 0.5, 500, 5.0); // Drive to the center of the cryptobox, then go backwards or forwards if the pictograph is left or right respectively.
-        if (pictoKey == LEFT) {
-            gyroDrive(0, 0.5, 100, 5.0);
-        }
-        else if (pictoKey == RIGHT) {
-            gyroDrive(0, -0.5, 100, 5.0);
-        }
-        gyroTurn(90, 5.0);
-        sleep(500);
+
+        telemetry.addData("Prepare to drive!", "Forward");
+        sleep(2000); // For debug
+        score = gyroDrive(0, -0.25, 1800, 5.0); // Drive to the center of the cryptobox, then go backwards or forwards if the pictograph is left or right respectively.
+        sleep(2000);
+        score = gyroDrive(-100, 0.2, 1300, 5.0);
+        score = gyroDrive(-100, -0.1, 700, 3.0);
+
         robot.glyphGrabberLeft.setPosition(grabberLeftMax); // Release the glyph and score!
         robot.glyphGrabberRight.setPosition(grabberRightMin);
+        /*if (pictoKey == CENTER) {
+            score = gyroDrive(-105, 0.2, 1300, 5.0);
+            score = gyroDrive(-105, 0.1, 400, 3.0);
+        }
+        else if (pictoKey == RIGHT) {
+            score = gyroDrive(-105, 0.2, 1300, 5.0);
+            score = gyroDrive(-105, 0.1, 400, 3.0);
+        }
+        else if (pictoKey == LEFT){
+            score = gyroDrive(-100, 0.2, 1300, 5.0);
+            score = gyroDrive(-100, -0.1, 400, 3.0);
+        }*/
+        sleep(2000);
+        //score = gyroDrive(-100, -0.1, 700, 3.0);
+        gyroTurn(90, 5.0);
+        sleep(2000);
+
         // Our robot should be inside the safezone at this point and our autonomous will end
         // In the future we are going to play around with grabbing more glyphs off the field in autonomous
     }
-
     /*
-    Function to lower the jewel arm and sense the color
-    Returning true means to drive forward (direction of color sensor)
-    Returning false means to drive backwards
-     */
+   Function to lower the jewel arm and sense the color
+   Returning true means to drive forward (direction of color sensor)
+   Returning false means to drive backwards
+    */
     boolean jewelRun(){
         robot.jewelArm.setPosition(1.0);
         boolean goForward = false;
-        sleep(500);
+        sleep(2000);
         telemetry.addData("Red: ", robot.jewelSensorColor.red());
         telemetry.addData("Blue: ", robot.jewelSensorColor.blue());
         telemetry.update();
@@ -194,10 +269,10 @@ public class Autonomous extends LinearOpMode    {
                 goForward = true;
             }
             else {
-                goForward = false; // This is probably redundant
+                goForward = false; // This is probably redundant but it'll work
             }
         }
-        robot.jewelArm.setPosition(0.1); // We need to measure exactly where to set the arm position after reading the values
+        //jewelArm.setPosition(0.5); // We need to measure exactly where to set the arm position after reading the values
         return goForward;
     }
 
@@ -220,13 +295,13 @@ public class Autonomous extends LinearOpMode    {
 
         speed = Range.clip(speed, -1, 1);
         // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
-        while ((Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance)) {
+        while (opModeIsActive() && (Math.abs(robot.rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(robot.leftMotor.getCurrentPosition() -startLPos) < distance)) {
             if (time > startTime + timeout) {
                 telemetry.addData("Last drive stop:", "Timeout!");
                 break;
             }
 
-            Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
 
             telemetry.addData("motorleft dist:", robot.leftMotor.getCurrentPosition() - startLPos);
@@ -245,8 +320,8 @@ public class Autonomous extends LinearOpMode    {
                 left = Range.clip(left, -1, 1);
             }
 
-            //robot.rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            //robot.leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            //leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             robot.rightMotor.setPower(right);
             robot.rMotor.setPower(right);
@@ -268,7 +343,7 @@ public class Autonomous extends LinearOpMode    {
     }
 
     /*
-    Function to turn our robot.
+    Function to turn our robot
     targetAngle is the angle we wish to turn to
     timeout is the max time we can be attempting to turn to that angle
      */
@@ -284,8 +359,8 @@ public class Autonomous extends LinearOpMode    {
         double speed = 0.0;
 
         // Start the loop. loop ends if angle is reached or time runs out
-        while (time < startTime + timeout) {
-            Orientation orientation = robot.imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+        while (opModeIsActive() && time < startTime + timeout) {
+            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             double angleDiff = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
             telemetry.addData("Angle difference:", angleDiff);
@@ -297,12 +372,12 @@ public class Autonomous extends LinearOpMode    {
                 break;
             }
             else if (Math.abs(angleDiff) == angleDiff) { // Make a clockwise turn
-                speed = Range.clip(angleDiff/60, 0.1, TURN_SPEED);
+                speed = 0.1; //Range.clip(angleDiff/60, 0.1, TURN_SPEED);
                 right = speed;
                 left = -speed;
             }
             else if (Math.abs(angleDiff) != angleDiff) { // Turn counter clockwise
-                speed = Range.clip(angleDiff/60, -TURN_SPEED, -0.1);
+                speed = 0.1; // Range.clip(angleDiff/60, -TURN_SPEED, -0.1);
                 right = -speed;
                 left = speed;
             }
@@ -369,14 +444,6 @@ public class Autonomous extends LinearOpMode    {
         telemetry.update();
         return CENTER; // No vumark was found within the timeout period, so we'll just return center (1/3 chance of getting it right)
     }
-
-
-    // MISCELLANEOUS FUNCTIONS
-
-    String format(OpenGLMatrix transformationMatrix) {
-        return (transformationMatrix != null) ? transformationMatrix.formatAsTransform() : "null";
-    }
-
 
     //----------------------------------------------------------------------------------------------
     // Telemetry Configuration
