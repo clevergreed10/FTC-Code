@@ -70,6 +70,8 @@ public class BlueLower extends LinearOpMode
 
     HardwareEEBot robot = new HardwareEEBot();
 
+    DriveModule driveModule = new DriveModule();
+
     //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
     VuforiaLocalizer vuforia;
     VuforiaTrackable relicTemplate;
@@ -189,6 +191,8 @@ public class BlueLower extends LinearOpMode
         // Wait until we're told to go
         waitForStart();
 
+        driveModule.init(robot, this);
+
         // Start the logging of measured acceleration
         //imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
 
@@ -214,7 +218,7 @@ public class BlueLower extends LinearOpMode
         else {
             score = gyroDrive(0, -DRIVE_SPEED, 50, 1.0);
             jewelArm.setPosition(0.5);
-             // Drive to the position we would be at if we had gone backwards
+            // Drive to the position we would be at if we had gone backwards
         }
 
         telemetry.addData("Prepare to drive!", "Forward");
