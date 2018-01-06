@@ -3,7 +3,9 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -16,7 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
  * Created by Josh on 11/8/2017.
  */
 
-public class DriveModule {
+public class AutonomousCommands {
     Telemetry telemetry;
     LinearOpMode opMode;
 
@@ -24,13 +26,21 @@ public class DriveModule {
     DcMotor rMotor;
     DcMotor leftMotor;
     DcMotor lMotor;
+    DcMotor intakeRight;
+    DcMotor intakeLeft;
+
+    Servo jewelArm;
+
+    ColorSensor jewelSensorColor;
 
     BNO055IMU imu;
 
     boolean initialized = false;
 
-    public DriveModule() {
+    public AutonomousCommands() {
     }
+
+
 
     public void init(HardwareEEBot robot, LinearOpMode newOpMode) {
         opMode = newOpMode;
@@ -40,6 +50,8 @@ public class DriveModule {
         rMotor     = robot.motorBR;
         leftMotor  = robot.motorFL;
         lMotor     = robot.motorBL;
+
+        jewelArm = robot.jewelArm;
 
         imu = robot.imu;
 
@@ -55,6 +67,21 @@ public class DriveModule {
         initialized = true;
     }
 
+    public void setJewelArmPosition(double pos) {
+        jewelArm.setPosition(pos);
+    }
+
+    public void setIntakePower(double power) {
+        intakeLeft.setPower(power);
+        intakeRight.setPower(power);
+    }
+    /*
+    Drive by gyro function, drives the robot a given length keeping within a certain angle
+    targetAngle: The angle we wish to stay on
+    speed: The speed of the motors. Unlike last year, -speed means you go backwards.
+    distance: The length we wish to travel
+    TODO: Convert distance from ticks to inches.
+     */
     public boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
         if (!initialized) {
             return false;
@@ -114,5 +141,90 @@ public class DriveModule {
         leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (opMode.time < startTime + timeout);
+    }
+
+    /*
+        The Turn function. Will turn to a given angle
+        targetAngle: The angle we wish to turn to.
+        speed: The power of the motors
+        timeout: Automatic timeout in seconds
+        TODO: Convert distance from ticks to inches.
+         */
+    public boolean gyroTurn(double targetAngle, double speed, double timeout) {
+        if (!initialized) {
+            return false;
+        }
+        double startTime = opMode.time;
+        double currentAngle = targetAngle + 30;
+        double right;
+        double left;
+
+        speed = Range.clip(Math.abs(speed), 0, 1);
+        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
+        while (Math.abs(targetAngle - currentAngle) > 15) { // Drive until we're within 15 degrees of the starting angle
+            if (opMode.time > startTime + timeout) {
+                telemetry.addData("Last drive stop:", "Timeout!");
+                break;
+            }
+
+            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            currentAngle = orientation.thirdAngle;
+
+            double slowdown = Math.abs(targetAngle - currentAngle) / 30;
+            slowdown = Range.clip(slowdown, 0.1, 1);
+
+            telemetry.addData("Current z orientation:", currentAngle);
+            telemetry.addData("Slowdown:", slowdown);
+
+            if (targetAngle - currentAngle > 0) { // This isn't 100% effective
+                right = -speed * slowdown;
+                left = speed * slowdown;
+            }
+            else {
+                right = speed * slowdown;
+                left = -speed * slowdown;
+            }
+
+            rightMotor.setPower(right);
+            rMotor.setPower(right);
+            leftMotor.setPower(left);
+            lMotor.setPower(left);
+        }
+
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        rightMotor.setPower(0.0);
+        rMotor.setPower(0.0);
+        leftMotor.setPower(0.0);
+        lMotor.setPower(0.0);
+
+        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        return (opMode.time < startTime + timeout);
+    }
+
+    /*
+   Function to lower the jewel arm and sense the color
+   Returning true means to drive forward (direction of color sensor)
+   Returning false means to drive backwards
+    */
+    public TeamColor jewelRun() {
+        jewelArm.setPosition(1.0);
+        opMode.sleep(1000);
+        telemetry.addData("Red: ", jewelSensorColor.red());
+        telemetry.addData("Blue: ", jewelSensorColor.blue());
+        telemetry.update();
+        if (jewelSensorColor.red() > 5 && jewelSensorColor.red() > jewelSensorColor.blue()) {
+            // Direct ball is red
+            return TeamColor.RED;
+        }
+        else if (jewelSensorColor.blue() > 5 && jewelSensorColor.blue() > jewelSensorColor.red()) {
+            // Direct ball is blue
+            return TeamColor.BLUE;
+        }
+        else {
+            return TeamColor.NONE;
+        }
     }
 }
