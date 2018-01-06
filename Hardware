@@ -54,8 +54,10 @@ public class HardwareEEBot {
     ////public DcMotor  elevator  = null;
 
     //Servos\
-    //public Servo topConv;
-    //public Servo bottomConv;
+    public Servo UR_Intake;
+    public Servo BR_Intake;
+    public Servo UL_Intake;
+    public Servo BL_Intake;
     //public Servo jewelArm= null;
     /*public Servo glyphGrabberLeft = null;
     public Servo glyphGrabberLeft2 = null;
@@ -208,8 +210,10 @@ public class HardwareEEBot {
 
 
         // Define and initialize ALL installed servos.
-        //topConv = hwMap.get(Servo.class, "top_conveyor");
-        //bottomConv = hwMap.get(Servo.class, "bottom_conveyor");
+        BR_Intake = hwMap.get(Servo.class, "top_conveyor");
+        BL_Intake = hwMap.get(Servo.class, "bottom_conveyor");
+        UR_Intake = hwMap.get(Servo.class, "UR_Intake");
+        UL_Intake = hwMap.get(Servo.class, "UL_Intake");
        // jewelArm = hwMap.servo.get("jewelArm");
         /*glyphGrabberLeft = hwMap.get(Servo.class, "glyphGrabberLeft");
         glyphGrabberLeft2 = hwMap.get(Servo.class, "glyphGrabberLeft2");
