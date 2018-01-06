@@ -58,7 +58,7 @@ public class HardwareEEBot {
     public Servo BR_Intake;
     public Servo UL_Intake;
     public Servo BL_Intake;
-    //public Servo jewelArm= null;
+    public Servo jewelArm= null;
     /*public Servo glyphGrabberLeft = null;
     public Servo glyphGrabberLeft2 = null;
     public Servo glyphGrabberRight = null;
@@ -76,7 +76,7 @@ public class HardwareEEBot {
 
     //public AnalogInput colorButton = null;
     //Sensors
-    //ColorSensor jewelSensorColor;
+    ColorSensor jewelSensorColor;
     //DistanceSensor jewelSensorDistance;
 
 
@@ -109,6 +109,7 @@ public class HardwareEEBot {
         // Define and Initialize Motors
         intakeLeft = hwMap.dcMotor.get("motor_left");
         intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        intakeLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeLeft.setPower(0);
 
         intakeRight = hwMap.dcMotor.get("motor_right");
@@ -116,22 +117,22 @@ public class HardwareEEBot {
         intakeRight.setPower(0);
         intakeRight.setDirection(DcMotor.Direction.REVERSE);
 
-        motorFL = hwMap.dcMotor.get("lm");
+        motorFL = hwMap.dcMotor.get("motor_fl");
         motorFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorFL.setPower(0);
 
-        motorFR = hwMap.dcMotor.get("rm");
+        motorFR = hwMap.dcMotor.get("motor_fr");
         motorFR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorFR.setDirection(DcMotor.Direction.REVERSE);
         motorFR.setPower(0);
 
         //sweeper = hwMap.dcMotor.get("sweeper");
 
-        motorBL = hwMap.dcMotor.get("motor_left2");
+        motorBL = hwMap.dcMotor.get("motor_bl");
         motorBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorBL.setPower(0);
 
-        motorBR = hwMap.dcMotor.get("motor_right2");
+        motorBR = hwMap.dcMotor.get("motor_br");
         motorBR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorBR.setDirection(DcMotor.Direction.REVERSE);
         motorBR.setPower(0);
@@ -175,7 +176,7 @@ public class HardwareEEBot {
         //  flipper.setPower(0);
 
         // get a reference to the color sensor.
-      // jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
+       jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
 
         // get a reference to the distance sensor that shares the same name.
         //jewelSensorDistance = hwMap.get(DistanceSensor.class, "sensor_color_distance");
@@ -214,7 +215,7 @@ public class HardwareEEBot {
         BL_Intake = hwMap.get(Servo.class, "bottom_conveyor");
         UR_Intake = hwMap.get(Servo.class, "UR_Intake");
         UL_Intake = hwMap.get(Servo.class, "UL_Intake");
-       // jewelArm = hwMap.servo.get("jewelArm");
+        jewelArm = hwMap.servo.get("jewelArm");
         /*glyphGrabberLeft = hwMap.get(Servo.class, "glyphGrabberLeft");
         glyphGrabberLeft2 = hwMap.get(Servo.class, "glyphGrabberLeft2");
         glyphGrabberRight = hwMap.get(Servo.class, "glyphGrabberRight");
