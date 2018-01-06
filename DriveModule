@@ -5,6 +5,7 @@ import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
@@ -26,9 +27,11 @@ public class AutonomousCommands {
     DcMotor rMotor;
     DcMotor leftMotor;
     DcMotor lMotor;
-    DcMotor intakeRight;
-    DcMotor intakeLeft;
 
+    Servo intakeBR;
+    Servo intakeBL;
+    Servo intakeUR;
+    Servo intakeUL;
     Servo jewelArm;
 
     ColorSensor jewelSensorColor;
@@ -41,19 +44,85 @@ public class AutonomousCommands {
     }
 
 
-
     public void init(HardwareEEBot robot, LinearOpMode newOpMode) {
         opMode = newOpMode;
         telemetry = newOpMode.telemetry;
 
-        rightMotor = robot.motorFR;
-        rMotor     = robot.motorBR;
-        leftMotor  = robot.motorFL;
-        lMotor     = robot.motorBL;
+        /*rightMotor = hwMap.dcMotor.get("lm");
+        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightMotor.setPower(0);
 
-        jewelArm = robot.jewelArm;
+        rMotor = hwMap.dcMotor.get("rm");
+        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rMotor.setDirection(DcMotor.Direction.REVERSE);
+        rMotor.setPower(0);
 
-        imu = robot.imu;
+        //sweeper = hwMap.dcMotor.get("sweeper");
+
+        leftMotor = hwMap.dcMotor.get("motor_left2");
+        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftMotor.setPower(0);
+
+        lMotor = hwMap.dcMotor.get("motor_right2");
+        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        lMotor.setDirection(DcMotor.Direction.REVERSE);
+        lMotor.setPower(0);
+
+        intakeBR = hwMap.get(Servo.class, "top_conveyor");
+        intakeBL = hwMap.get(Servo.class, "bottom_conveyor");
+        intakeUR = hwMap.get(Servo.class, "UR_Intake");
+        intakeUL = hwMap.get(Servo.class, "UL_Intake");*/
+        //jewelArm = robot.jewelArm;
+
+        //jewelSensorColor = robot.jewelSensorColor;
+
+        //imu = robot.imu;
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit            = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile  = "BNO055IMUCalibration.json";
+        parameters.loggingEnabled       = true;
+        parameters.loggingTag           = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+        //imu.initialize(parameters);
+
+        initialized = true;
+    }
+
+    public void init(HardwareMap hwMap, LinearOpMode newOpMode) {
+        opMode = newOpMode;
+        telemetry = newOpMode.telemetry;
+
+        rightMotor = hwMap.dcMotor.get("lm");
+        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightMotor.setPower(0);
+
+        rMotor = hwMap.dcMotor.get("rm");
+        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rMotor.setDirection(DcMotor.Direction.REVERSE);
+        rMotor.setPower(0);
+
+        //sweeper = hwMap.dcMotor.get("sweeper");
+
+        leftMotor = hwMap.dcMotor.get("motor_left2");
+        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftMotor.setPower(0);
+
+        lMotor = hwMap.dcMotor.get("motor_right2");
+        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        lMotor.setDirection(DcMotor.Direction.REVERSE);
+        lMotor.setPower(0);
+
+        intakeBR = hwMap.get(Servo.class, "top_conveyor");
+        intakeBL = hwMap.get(Servo.class, "bottom_conveyor");
+        intakeUR = hwMap.get(Servo.class, "UR_Intake");
+        intakeUL = hwMap.get(Servo.class, "UL_Intake");
+        jewelArm = hwMap.servo.get("jewelArm");
+
+        jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
+
+        imu = hwMap.get(BNO055IMU.class, "imu");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
@@ -71,9 +140,37 @@ public class AutonomousCommands {
         jewelArm.setPosition(pos);
     }
 
-    public void setIntakePower(double power) {
-        intakeLeft.setPower(power);
-        intakeRight.setPower(power);
+    /* Function to turn on/off the intake wheels
+    direction is the direction in which the wheels should spin, IN, OUT, or NONE.
+    intakePair is the pair of wheels in which to set the direction of.
+
+    REFERENCE; On continuous rotation servos: 0 and 1 are spinning, 0.5 is stop.
+     */
+    public void changeIntakeDirection(Direction direction, Direction intakePair) {
+        if (intakePair == Direction.DOWN) {
+            if (direction == Direction.IN) {
+                intakeBL.setPosition(1);
+                intakeBR.setPosition(0);
+            } else if (direction == Direction.OUT) {
+                intakeBL.setPosition(0);
+                intakeBR.setPosition(1);
+            } else {
+                intakeBL.setPosition(0.5);
+                intakeBR.setPosition(0.5);
+            }
+        }
+        else if (intakePair == Direction.UP) {
+            if (direction == Direction.IN) {
+                intakeBL.setPosition(0);
+                intakeBR.setPosition(1);
+            } else if (direction == Direction.OUT) {
+                intakeBL.setPosition(1);
+                intakeBR.setPosition(0);
+            } else {
+                intakeBL.setPosition(0.5);
+                intakeBR.setPosition(0.5);
+            }
+        }
     }
     /*
     Drive by gyro function, drives the robot a given length keeping within a certain angle
@@ -124,10 +221,11 @@ public class AutonomousCommands {
                 left = Range.clip(left, -1, 1);
             }
 
-            rightMotor.setPower(right);
-            rMotor.setPower(right);
-            leftMotor.setPower(left);
-            lMotor.setPower(left);
+            rightMotor.setPower(right/5);
+            rMotor.setPower(right/5);
+            //leftMotor.setPower(left/5);
+            //lMotor.setPower(left/5);
+            Thread.yield();
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
@@ -210,8 +308,8 @@ public class AutonomousCommands {
    Returning false means to drive backwards
     */
     public TeamColor jewelRun() {
-        jewelArm.setPosition(1.0);
-        opMode.sleep(1000);
+        jewelArm.setPosition(0.05);
+        opMode.sleep(3000);
         telemetry.addData("Red: ", jewelSensorColor.red());
         telemetry.addData("Blue: ", jewelSensorColor.blue());
         telemetry.update();
