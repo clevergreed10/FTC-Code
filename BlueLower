@@ -98,12 +98,12 @@ public class BlueLower extends LinearOpMode
     Orientation angles;
     Acceleration gravity;
 
-    /*DcMotor  leftMotor   = null;
+    DcMotor  leftMotor   = null;
     DcMotor  rightMotor  = null;
     DcMotor  lMotor   = null;
     DcMotor  rMotor  = null;
 
-    Servo jewelArm = null;
+    /*Servo jewelArm = null;
     Servo glyphGrabberLeft = null;
     Servo glyphGrabberRight = null;
 
@@ -174,7 +174,7 @@ public class BlueLower extends LinearOpMode
         // Joshua's license key
         vuforiaParameters.vuforiaLicenseKey = "AdLORsH/////AAAAGSk7H7mSvUJng/rqnN96DDJxBj6Ir4uum2FxifkokX51jW5AIEmws+YcGEoLywmIHtl1ajCqCfQ1tIjgRVhYlFbYasGMvweedEqPzlifXfLf6uFwPKN82+OT/JpKhtJr7n6LTvh5EQERs9eDByNvprWy0vqb5CEUszHs4WA2zrsS7occZN6MLIQXSBlArbnWAGr879iJb6Toed/6TLgIrzDkH1mTiLmJ7ANsHoNkazcQeC+pvtfdylzd7n3Azds1+wo1X0CmM6o4vw2e31DslsnJNLHLxCWpWArSVHKrvPJS75jDUeHiyoi4qlOm3R2S8nElj94EIJ69R66Ofk0gxM2F/10Juk+z9p0UQ5jaYAU0";
         // Chose which camera to use
-        vuforiaParameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        vuforiaParameters.cameraDirection = VuforiaLocalizer.CameraDirection.FRONT;
         this.vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParameters);
         /*
          * Load the data set containing the VuMarks for Relic Recovery. There's only one trackable
@@ -187,43 +187,45 @@ public class BlueLower extends LinearOpMode
         relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
         relicTrackables.activate();
-
         // Wait until we're told to go
+        robot.init(hardwareMap);
         waitForStart();
+        //hotfix
+        rightMotor = robot.motorFR;
+        rMotor     = robot.motorBR;
+        leftMotor  = robot.motorFL;
+        lMotor     = robot.motorBL;
 
-        driveModule.init(robot, this);
+        driveModule.init(hardwareMap, this);
 
-        // Start the logging of measured acceleration
-        //imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
-
-        telemetry.update();
+        //driveModule.gyroDrive(0, 0.3, 500, 2.0);
+        int pictoKey = findPictograph(1);
+        TeamColor jewelColor = jewelRun();
 
         sleep(2000);
 
-        int pictoKey = findPictograph(1);
-        TeamColor jewelColor = driveModule.jewelRun();
-
-        sleep(500);
-
-        if (jewelColor == TEAMCOLOR) { // Jewel is our team color
-            score = driveModule.gyroDrive(0, DRIVE_SPEED, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
-            driveModule.setJewelArmPosition(0.5);
+        if (jewelColor == TEAMCOLOR) { // Jewel is our team color drive forward
+            score = gyroDrive(0, -DRIVE_SPEED, 50, 1.0); // Distance is NOT in inches, we need to measure encoder counts to inches
+            sleep(1000);
+            driveModule.setJewelArmPosition(1);
             sleep(500); // Ensure we come to a complete stop.
             score = driveModule.gyroDrive(0, -DRIVE_SPEED, 100, 1.0);
         }
         else if (jewelColor == TeamColor.NONE) { // We were unable to get the jewel color: ABORT MISSION
-            driveModule.setJewelArmPosition(0.5);
+            driveModule.setJewelArmPosition(1);
             sleep(500);
             score = driveModule.gyroDrive(0, -DRIVE_SPEED, 100, 1.0);
         }
         else { // Jewel is not our team color
-            score = driveModule.gyroDrive(0, -DRIVE_SPEED, 50, 1.0);
-            driveModule.setJewelArmPosition(0.5);
+            score = driveModule.gyroDrive(0, -DRIVE_SPEED, 100, 1.0);
+            sleep(1000);
+            driveModule.setJewelArmPosition(1);
             // Drive to the position we would be at if we had gone backwards
         }
 
         telemetry.addData("Prepare to drive!", "Backwards!");
-        sleep(500); // For debug
+        telemetry.update();
+        sleep(5000); // For debug
         score = driveModule.gyroDrive(0, -DRIVE_SPEED, 1800, 5.0); // Drive to the center of the cryptobox, then go backwards or forwards if the pictograph is left or right respectively.
         sleep(500);
         //score = gyroDrive(-100, -DRIVE_SPEED, 1300, 5.0);
@@ -245,23 +247,40 @@ public class BlueLower extends LinearOpMode
             score = driveModule.gyroDrive(-105, -0.1, 400, 3.0);
         }
         sleep(500);
-        driveModule.setIntakePower(0.75);
+        driveModule.changeIntakeDirection(Direction.OUT, Direction.DOWN); // Push out on the bottom pair of intake wheels
         sleep(1000);
-        driveModule.setIntakePower(0);
+        driveModule.changeIntakeDirection(Direction.NONE, Direction.DOWN); // Turn off the bottom pair of intake wheels
         sleep(1000);
         score = driveModule.gyroDrive(-105, -DRIVE_SPEED, 500, 3.0); // Back away towards the glyph pile
         // Our robot should be inside the safezone at this point and our autonomous will end
         // In the future we are going to play around with grabbing more glyphs off the field in autonomous
     }
 
-
+    public TeamColor jewelRun() {
+        robot.jewelArm.setPosition(0.09);
+        sleep(3000);
+        telemetry.addData("Red: ", robot.jewelSensorColor.red());
+        telemetry.addData("Blue: ", robot.jewelSensorColor.blue());
+        telemetry.update();
+        if (robot.jewelSensorColor.red() > 1 && robot.jewelSensorColor.red() > robot.jewelSensorColor.blue()) {
+            // Direct ball is red
+            return TeamColor.RED;
+        }
+        else if (robot.jewelSensorColor.blue() > 1 && robot.jewelSensorColor.blue() > robot.jewelSensorColor.red()) {
+            // Direct ball is blue
+            return TeamColor.BLUE;
+        }
+        else {
+            return TeamColor.NONE;
+        }
+    }
     /*
     Drive by gyro function, drives the robot a given length keeping within a certain angle
     targetAngle: The angle we wish to stay on
     speed: The speed of the motors. Unlike last year, -speed means you go backwards.
     distance: The length we wish to travel
      */
-    /*public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
+    public Boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
         // Set the motors to measure encoder counts.
         rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -317,7 +336,6 @@ public class BlueLower extends LinearOpMode
         lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (time < startTime + timeout);
     }
-*/
     /*boolean gyroStrafe(int direction, double speed, int distance, double timeout) {
         // Set the motors to measure encoder counts.
         rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
