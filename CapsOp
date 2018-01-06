@@ -65,7 +65,7 @@ public class CapsOp extends OpMode {
          * The init() method of the hardware class does all the work here
          */
         robot.init(hardwareMap);
-
+        //robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION); // Mode is set in robot.init()
         /*grabberLeftPos = robot.glyphGrabberLeft.getPosition();
         grabberLeftPos2 = robot.glyphGrabberLeft2.getPosition();
         grabberRightPos = robot.glyphGrabberRight.getPosition();
@@ -73,7 +73,7 @@ public class CapsOp extends OpMode {
 
         //robot.jewelArm.setPosition(0.5);
 
-       // Send telemetry message to signify robot waiting;
+        // Send telemetry message to signify robot waiting;
         telemetry.addData("Say", "Hello Driver");    //
         updateTelemetry(telemetry);
     }
@@ -87,11 +87,12 @@ public class CapsOp extends OpMode {
     }
 
     /*
-     * Code to run ONCE when the driver hits PLAY22222222
+     * Code to run ONCE when the driver hits PLAY
      */
     @Override
     public void start() {
-        robot.intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.intakeLeft.setTargetPosition(0);
+        robot.intakeLeft.setPower(0.5);
     }
 
     /*
@@ -202,15 +203,13 @@ public class CapsOp extends OpMode {
 
         // Spin the intake arms
         if (gamepad2.right_bumper) {
-            while (robot.intakeLeft.getCurrentPosition() < 144) {
-                robot.intakeLeft.setPower(0.5);
+            if (robot.intakeLeft.getTargetPosition() != 144) {
+                robot.intakeLeft.setTargetPosition(144);
             }
-            robot.intakeLeft.setPower(0);
         } else if (gamepad2.left_bumper) {
-            while (robot.intakeLeft.getCurrentPosition() > 0) {
-                robot.intakeLeft.setPower(-0.5);
+            if (robot.intakeLeft.getTargetPosition() != 0) {
+                robot.intakeLeft.setTargetPosition(0);
             }
-            robot.intakeLeft.setPower(0);
         }
         // Intake servos
         if (gamepad2.x) {
@@ -439,7 +438,7 @@ public class CapsOp extends OpMode {
 //        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
 //                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
         double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-              0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
+                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
 
         // get the corresponding index for the scaleInput array.
         int index = (int) (dVal * 16.0);
