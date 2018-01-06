@@ -27,9 +27,11 @@ public class CapsOp extends OpMode {
     int x = 0;
     //ModernRoboticsTouchSensor touch = null;
     /* Declare OpMode members. */
-    HardwareEEBot   robot           = new HardwareEEBot();// Use a EE bot hardware
-    final private double DRIVE_DAMPENER   = 0.42;
-    final private double STRAFE_SPEED     = 0.35;                // The constant speed to strafe
+    HardwareEEBot robot = new HardwareEEBot();// Use a EE bot hardware
+    final private double DRIVE_DAMPENER = 0.42;
+    final private double STRAFE_SPEED = 0.35;                // The constant speed to strafe
+
+    double startEncoderPos = 0;
 
     /*private double strafingSpeed = 0;
     private double grabberLeftMin = 0;
@@ -91,8 +93,10 @@ public class CapsOp extends OpMode {
      */
     @Override
     public void start() {
+        robot.intakeLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         robot.intakeLeft.setTargetPosition(0);
-        robot.intakeLeft.setPower(0.5);
+        robot.intakeLeft.setPower(0.25);
     }
 
     /*
@@ -102,7 +106,6 @@ public class CapsOp extends OpMode {
     public void loop() {
         // GAMEPAD 1 CONTROLS \\
         // If a bumper is down, strafe. Otherwise drive from left and right sticks
-
         if (gamepad1.left_bumper) {
             // Strafe left
             telemetry.addData("Left bumper down!", STRAFE_SPEED);
@@ -113,8 +116,7 @@ public class CapsOp extends OpMode {
             // Front right and back left motors go backwards.
             robot.motorBL.setPower(-STRAFE_SPEED);
             robot.motorFR.setPower(-STRAFE_SPEED);
-        }
-        else if (gamepad1.right_bumper){
+        } else if (gamepad1.right_bumper) {
             // Strafe right
 
             telemetry.addData("Right bumper down!", STRAFE_SPEED);
@@ -125,11 +127,10 @@ public class CapsOp extends OpMode {
             // Front left and back right motors go backwards.
             robot.motorBR.setPower(-STRAFE_SPEED);
             robot.motorFL.setPower(-STRAFE_SPEED);
-        }
-        else {
+        } else {
             // Apply motor control
             double rightPower = scaleInput(gamepad1.right_stick_y);
-            double leftPower  = scaleInput(gamepad1.left_stick_y);
+            double leftPower = scaleInput(gamepad1.left_stick_y);
 
             telemetry.addData("rightPower", rightPower);
             telemetry.addData("leftPower", leftPower);
@@ -143,28 +144,28 @@ public class CapsOp extends OpMode {
             robot.motorFL.setPower(leftPower * DRIVE_DAMPENER);
         }
 
-        if (gamepad1.y){
+        if (gamepad1.y) {
             robot.motorBR.setPower(-0.5);
             robot.motorFR.setPower(-0.5);
             robot.motorFL.setPower(-0.5);
             robot.motorBL.setPower(-0.5);
         }
 
-        if (gamepad1.a){
+        if (gamepad1.a) {
             robot.motorBR.setPower(0.5);
             robot.motorFR.setPower(0.5);
             robot.motorFL.setPower(0.5);
             robot.motorBL.setPower(0.5);
         }
 
-        if (gamepad1.dpad_left){
+        if (gamepad1.dpad_left) {
             robot.motorBR.setPower(1);
             robot.motorFR.setPower(0.5);
             robot.motorFL.setPower(1);
             robot.motorBL.setPower(0.5);
         }
 
-        if (gamepad1.dpad_right){
+        if (gamepad1.dpad_right) {
             robot.motorBR.setPower(0.5);
             robot.motorFR.setPower(1);
             robot.motorFL.setPower(0.5);
@@ -204,13 +205,17 @@ public class CapsOp extends OpMode {
         // Spin the intake arms
         if (gamepad2.right_bumper) {
             if (robot.intakeLeft.getTargetPosition() != 144) {
+                telemetry.addData("Updating target position:", 144);
                 robot.intakeLeft.setTargetPosition(144);
             }
         } else if (gamepad2.left_bumper) {
             if (robot.intakeLeft.getTargetPosition() != 0) {
+                telemetry.addData("Updating target position:", 0);
                 robot.intakeLeft.setTargetPosition(0);
             }
         }
+        telemetry.addData("Current position:", robot.intakeLeft.getCurrentPosition());
+        telemetry.update();
         // Intake servos
         if (gamepad2.x) {
             if (!xDown) {
@@ -258,7 +263,7 @@ public class CapsOp extends OpMode {
         } else {
             bDown = false;
         }
-        if (!aDown && !bDown){
+        if (!aDown && !bDown) {
             robot.BL_Intake.setPosition(0.5);
             robot.BR_Intake.setPosition(0.5);
         }
@@ -266,11 +271,9 @@ public class CapsOp extends OpMode {
         // Spool commands
         if (gamepad2.dpad_up) {
             robot.spool.setPower(-0.75);
-        }
-        else if (gamepad2.dpad_down) {
+        } else if (gamepad2.dpad_down) {
             robot.spool.setPower(0.75);
-        }
-        else {
+        } else {
             robot.spool.setPower(0);
         }
 
@@ -429,22 +432,22 @@ public class CapsOp extends OpMode {
     boolean isNegative(double number) {
         if (Math.abs(number) == number) {
             return false;
-        }
-        else {
+        } else {
             return true;
         }
     }
-    double scaleInput(double dVal)  {
+
+    double scaleInput(double dVal) {
 //        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
 //                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
-        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
+        double[] scaleArray = {0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
+                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00};
 
         // get the corresponding index for the scaleInput array.
         int index = (int) (dVal * 16.0);
 
         // index should be positive.
-        if(index < 0){
+        if (index < 0) {
             index = -index;
         }
 
