@@ -12,6 +12,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 //import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -30,7 +31,7 @@ public class CapsOp extends OpMode {
     final private double DRIVE_DAMPENER   = 0.42;
     final private double STRAFE_SPEED     = 0.35;                // The constant speed to strafe
 
-    private double strafingSpeed = 0;
+    /*private double strafingSpeed = 0;
     private double grabberLeftMin = 0;
     private double grabberLeftMin2 = 0.4;
     private double grabberLeftMax = 0.2;
@@ -42,16 +43,18 @@ public class CapsOp extends OpMode {
     private double grabberLeftPos;
     private double grabberLeftPos2;
     private double grabberRightPos;
-    private double grabberRightPos2;
+    private double grabberRightPos2;*/
 
     private boolean xDown = false;
+    private boolean yDown = false;
     private boolean aDown = false;
-    private boolean dpadDown = false;
+    private boolean bDown = false;
+    /*private boolean dpadDown = false;
     private boolean toggleOverride = false; // The variable used to determine whether to set grabbers with x/a or y/b
     private boolean grabberLeftDown = false;
     private boolean grabberRightDown = false;
     private boolean grabberAllDown = false;
-    boolean sweeperOn = false;
+    boolean sweeperOn = false;*/
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -63,6 +66,9 @@ public class CapsOp extends OpMode {
          */
         robot.init(hardwareMap);
 
+        robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.intakeLeft.setTargetPosition(0);
+        robot.intakeLeft.setPower(0.2);
         /*grabberLeftPos = robot.glyphGrabberLeft.getPosition();
         grabberLeftPos2 = robot.glyphGrabberLeft2.getPosition();
         grabberRightPos = robot.glyphGrabberRight.getPosition();
@@ -95,13 +101,11 @@ public class CapsOp extends OpMode {
      */
     @Override
     public void loop() {
-
         // GAMEPAD 1 CONTROLS \\
         // If a bumper is down, strafe. Otherwise drive from left and right sticks
 
         if (gamepad1.left_bumper) {
             // Strafe left
-
             telemetry.addData("Left bumper down!", STRAFE_SPEED);
             // Front left and back right motors go forwards.
             robot.motorBR.setPower(STRAFE_SPEED);
@@ -141,55 +145,6 @@ public class CapsOp extends OpMode {
             robot.motorFL.setPower(leftPower * DRIVE_DAMPENER);
         }
 
-
-        // Intake wheels
-        if (Math.abs(gamepad2.right_stick_y) > 0.1 || Math.abs(gamepad2.left_stick_y) > 0.1) {
-            // Activate the intake wheels
-            double rightPower = scaleInput(gamepad2.right_stick_y);
-            double leftPower = scaleInput(gamepad2.left_stick_y);
-
-            telemetry.addData("rightPower", rightPower);
-            telemetry.addData("leftPower", leftPower);
-            telemetry.update();
-
-            if (isNegative(rightPower)) {
-                rightPower = rightPower * 0.5;
-            } else {
-                rightPower = rightPower * 0.75;
-            }
-            if (isNegative(leftPower)) {
-                leftPower = leftPower * 0.5;
-            } else {
-                leftPower = leftPower * 0.75;
-            }
-
-            robot.intakeRight.setPower(rightPower);
-            robot.intakeLeft.setPower(leftPower);
-        }
-        else {
-            robot.intakeRight.setPower(0);
-            robot.intakeLeft.setPower(0);
-        }
-
-        if (gamepad2.right_bumper) {
-            robot.intakeLeft.setPower(-0.5);
-            robot.intakeRight.setPower(-0.5);
-            robot.spool.setPower(-0.5);
-        }
-
-        // Set the spool speed
-        if (gamepad2.dpad_up) {
-            robot.spool.setPower(0.75);
-        }
-        else if (gamepad2.dpad_down) {
-            robot.spool.setPower(-0.75);
-        }
-        else {
-            robot.spool.setPower(0);
-        }
-
-        telemetry.update();
-
         if (gamepad1.y){
             robot.motorBR.setPower(-0.5);
             robot.motorFR.setPower(-0.5);
@@ -203,6 +158,123 @@ public class CapsOp extends OpMode {
             robot.motorFL.setPower(0.5);
             robot.motorBL.setPower(0.5);
         }
+
+        if (gamepad1.dpad_left){
+            robot.motorBR.setPower(1);
+            robot.motorFR.setPower(0.5);
+            robot.motorFL.setPower(1);
+            robot.motorBL.setPower(0.5);
+        }
+
+        if (gamepad1.dpad_right){
+            robot.motorBR.setPower(0.5);
+            robot.motorFR.setPower(1);
+            robot.motorFL.setPower(0.5);
+            robot.motorBL.setPower(1);
+        }
+
+        // GAMEPAD 2 CONTROLS \\
+        // Intake wheels
+        if (Math.abs(gamepad2.right_stick_y) > 0.1 || Math.abs(gamepad2.left_stick_y) > 0.1) {
+            // Activate the intake wheels
+            double rightPower = scaleInput(gamepad2.right_stick_y) * -1;
+            double leftPower = scaleInput(gamepad2.left_stick_y) * -1;
+
+            telemetry.addData("rightPower", rightPower);
+            telemetry.addData("leftPower", leftPower);
+            telemetry.update();
+
+            if (isNegative(rightPower)) {
+                rightPower = rightPower * 0.75;
+            } else {
+                rightPower = rightPower * 0.5;
+            }
+            if (isNegative(leftPower)) {
+                leftPower = leftPower * 0.75;
+            } else {
+                leftPower = leftPower * 0.5;
+            }
+
+            robot.intakeRight.setPower(rightPower);
+            robot.intakeLeft.setPower(leftPower);
+        }
+        else {
+            robot.intakeRight.setPower(0);
+            robot.intakeLeft.setPower(0);
+        }
+
+
+        // Spin the intake arms
+        if (gamepad2.right_bumper && (robot.intakeLeft.getTargetPosition() != 144)) {
+            robot.intakeLeft.setTargetPosition(144);
+        } else if (gamepad2.left_bumper && (robot.intakeLeft.getTargetPosition() != 0)) {
+            robot.intakeLeft.setTargetPosition(0);
+        }
+        // Intake servos
+        if (gamepad2.x) {
+            if (!xDown) {
+                xDown = true;
+                // Intake on top
+                robot.UL_Intake.setPosition(0);
+                robot.UR_Intake.setPosition(1);
+            }
+        } else {
+            xDown = false;
+        }
+        if (gamepad2.y) {
+            if (!yDown) {
+                yDown = true;
+                // Push out on top
+                robot.UL_Intake.setPosition(1);
+                robot.UR_Intake.setPosition(0);
+            }
+        } else {
+            yDown = false;
+        }
+        if (!xDown && !yDown) {
+            robot.UL_Intake.setPosition(0.5);
+            robot.UR_Intake.setPosition(0.5);
+        }
+
+        if (gamepad2.a) {
+            if (!aDown) {
+                aDown = true;
+                // Intake on bottom
+                robot.BL_Intake.setPosition(1);
+                robot.BR_Intake.setPosition(0);
+            }
+        } else {
+            aDown = false;
+        }
+
+        if (gamepad2.b) {
+            if (!bDown) {
+                bDown = true;
+                // Push out on bottom
+                robot.BL_Intake.setPosition(0);
+                robot.BR_Intake.setPosition(1);
+            }
+        } else {
+            bDown = false;
+        }
+        if (!aDown && !bDown){
+            robot.BL_Intake.setPosition(0.5);
+            robot.BR_Intake.setPosition(0.5);
+        }
+
+        // Spool commands
+        if (gamepad2.dpad_up) {
+            robot.spool.setPower(-0.75);
+        }
+        else if (gamepad2.dpad_down) {
+            robot.spool.setPower(0.75);
+        }
+        else {
+            robot.spool.setPower(0);
+        }
+
+        telemetry.update();
+
         //robot.motorBL.setPower(leftPower * DRIVE_DAMPENER);
 
         /*if (gamepad2.dpad_up){
