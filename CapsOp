@@ -66,9 +66,6 @@ public class CapsOp extends OpMode {
          */
         robot.init(hardwareMap);
 
-        robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        robot.intakeLeft.setTargetPosition(0);
-        robot.intakeLeft.setPower(0.2);
         /*grabberLeftPos = robot.glyphGrabberLeft.getPosition();
         grabberLeftPos2 = robot.glyphGrabberLeft2.getPosition();
         grabberRightPos = robot.glyphGrabberRight.getPosition();
@@ -94,6 +91,7 @@ public class CapsOp extends OpMode {
      */
     @Override
     public void start() {
+        robot.intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     /*
@@ -140,7 +138,6 @@ public class CapsOp extends OpMode {
             robot.motorFR.setPower(rightPower * DRIVE_DAMPENER);
 
             // Set the two left motors to rightPower
-
             robot.motorBL.setPower(leftPower * DRIVE_DAMPENER);
             robot.motorFL.setPower(leftPower * DRIVE_DAMPENER);
         }
@@ -175,7 +172,7 @@ public class CapsOp extends OpMode {
 
         // GAMEPAD 2 CONTROLS \\
         // Intake wheels
-        if (Math.abs(gamepad2.right_stick_y) > 0.1 || Math.abs(gamepad2.left_stick_y) > 0.1) {
+        /*if (Math.abs(gamepad2.right_stick_y) > 0.1 || Math.abs(gamepad2.left_stick_y) > 0.1) {
             // Activate the intake wheels
             double rightPower = scaleInput(gamepad2.right_stick_y) * -1;
             double leftPower = scaleInput(gamepad2.left_stick_y) * -1;
@@ -201,14 +198,19 @@ public class CapsOp extends OpMode {
         else {
             robot.intakeRight.setPower(0);
             robot.intakeLeft.setPower(0);
-        }
-
+        }*/
 
         // Spin the intake arms
-        if (gamepad2.right_bumper && (robot.intakeLeft.getTargetPosition() != 144)) {
-            robot.intakeLeft.setTargetPosition(144);
-        } else if (gamepad2.left_bumper && (robot.intakeLeft.getTargetPosition() != 0)) {
-            robot.intakeLeft.setTargetPosition(0);
+        if (gamepad2.right_bumper) {
+            while (robot.intakeLeft.getCurrentPosition() < 144) {
+                robot.intakeLeft.setPower(0.5);
+            }
+            robot.intakeLeft.setPower(0);
+        } else if (gamepad2.left_bumper) {
+            while (robot.intakeLeft.getCurrentPosition() > 0) {
+                robot.intakeLeft.setPower(-0.5);
+            }
+            robot.intakeLeft.setPower(0);
         }
         // Intake servos
         if (gamepad2.x) {
