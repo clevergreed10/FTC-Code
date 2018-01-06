@@ -108,7 +108,7 @@ public class HardwareEEBot {
 
         // Define and Initialize Motors
         intakeLeft = hwMap.dcMotor.get("motor_left");
-        intakeLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         intakeLeft.setPower(0);
 
         intakeRight = hwMap.dcMotor.get("motor_right");
