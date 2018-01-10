@@ -29,6 +29,7 @@ public class CapsOp extends OpMode {
     /* Declare OpMode members. */
     HardwareEEBot robot = new HardwareEEBot();// Use a EE bot hardware
     final private double DRIVE_DAMPENER = 0.42;
+    final private double SPOOL_DAMPENER = 0.75;
     final private double STRAFE_SPEED = 0.35;                // The constant speed to strafe
 
     double startEncoderPos = 0;
@@ -96,7 +97,7 @@ public class CapsOp extends OpMode {
         robot.intakeLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         robot.intakeLeft.setTargetPosition(0);
-        robot.intakeLeft.setPower(0.25);
+        robot.intakeLeft.setPower(0.5);
     }
 
     /*
@@ -202,6 +203,10 @@ public class CapsOp extends OpMode {
             robot.intakeLeft.setPower(0);
         }*/
 
+        // Set the spool power
+        double spoolSpeed = scaleInput(gamepad2.left_stick_y);
+        robot.spool.setPower(spoolSpeed * SPOOL_DAMPENER);
+
         // Spin the intake arms
         if (gamepad2.right_bumper) {
             if (robot.intakeLeft.getTargetPosition() != 144) {
@@ -237,10 +242,12 @@ public class CapsOp extends OpMode {
         } else {
             yDown = false;
         }
+
         if (!xDown && !yDown) {
             robot.UL_Intake.setPosition(0.5);
             robot.UR_Intake.setPosition(0.5);
         }
+
 
         if (gamepad2.a) {
             if (!aDown) {
@@ -252,7 +259,6 @@ public class CapsOp extends OpMode {
         } else {
             aDown = false;
         }
-
         if (gamepad2.b) {
             if (!bDown) {
                 bDown = true;
@@ -263,21 +269,11 @@ public class CapsOp extends OpMode {
         } else {
             bDown = false;
         }
+
         if (!aDown && !bDown) {
             robot.BL_Intake.setPosition(0.5);
             robot.BR_Intake.setPosition(0.5);
         }
-
-        // Spool commands
-        if (gamepad2.dpad_up) {
-            robot.spool.setPower(-0.75);
-        } else if (gamepad2.dpad_down) {
-            robot.spool.setPower(0.75);
-        } else {
-            robot.spool.setPower(0);
-        }
-
-        telemetry.update();
 
         //robot.motorBL.setPower(leftPower * DRIVE_DAMPENER);
 
@@ -416,8 +412,6 @@ public class CapsOp extends OpMode {
             aDown = false;
         }
 */
-
-        telemetry.update();
 
         // Logic to set the grabber positions
         //These are the right positions for the new REV servos
