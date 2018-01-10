@@ -20,13 +20,15 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
  */
 
 public class AutonomousCommands {
+    private double TURN_THRESHOLD = 15;
+
     Telemetry telemetry;
     LinearOpMode opMode;
 
-    DcMotor rightMotor;
-    DcMotor rMotor;
-    DcMotor leftMotor;
-    DcMotor lMotor;
+    DcMotor motorBR;
+    DcMotor motorFR;
+    DcMotor motorBL;
+    DcMotor motorFL;
 
     Servo intakeBR;
     Servo intakeBL;
@@ -40,43 +42,27 @@ public class AutonomousCommands {
 
     boolean initialized = false;
 
-    public AutonomousCommands() {
-    }
+    public AutonomousCommands() {}
 
-
+    // Init with the EEBot robot. This has errored in the past though.
     public void init(HardwareEEBot robot, LinearOpMode newOpMode) {
         opMode = newOpMode;
         telemetry = newOpMode.telemetry;
 
-        /*rightMotor = hwMap.dcMotor.get("lm");
-        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightMotor.setPower(0);
+        motorBR = robot.motorBR;
+        motorFR = robot.motorFR;
+        motorBL = robot.motorBL;
+        motorFL = robot.motorFL;
 
-        rMotor = hwMap.dcMotor.get("rm");
-        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rMotor.setDirection(DcMotor.Direction.REVERSE);
-        rMotor.setPower(0);
+        intakeBR = robot.BR_Intake;
+        intakeBL = robot.BL_Intake;
+        intakeUR = robot.UR_Intake;
+        intakeUL = robot.UL_Intake;
+        jewelArm = robot.jewelArm;
 
-        //sweeper = hwMap.dcMotor.get("sweeper");
+        jewelSensorColor = robot.jewelSensorColor;
 
-        leftMotor = hwMap.dcMotor.get("motor_left2");
-        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftMotor.setPower(0);
-
-        lMotor = hwMap.dcMotor.get("motor_right2");
-        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        lMotor.setDirection(DcMotor.Direction.REVERSE);
-        lMotor.setPower(0);
-
-        intakeBR = hwMap.get(Servo.class, "top_conveyor");
-        intakeBL = hwMap.get(Servo.class, "bottom_conveyor");
-        intakeUR = hwMap.get(Servo.class, "UR_Intake");
-        intakeUL = hwMap.get(Servo.class, "UL_Intake");*/
-        //jewelArm = robot.jewelArm;
-
-        //jewelSensorColor = robot.jewelSensorColor;
-
-        //imu = robot.imu;
+        imu = robot.imu;
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
@@ -85,34 +71,33 @@ public class AutonomousCommands {
         parameters.loggingEnabled       = true;
         parameters.loggingTag           = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
-        //imu.initialize(parameters);
+        imu.initialize(parameters);
 
         initialized = true;
     }
 
+    // init with a HardwareMap. This manually gets all the servo and motors from the hwMap.
     public void init(HardwareMap hwMap, LinearOpMode newOpMode) {
         opMode = newOpMode;
         telemetry = newOpMode.telemetry;
 
-        rightMotor = hwMap.dcMotor.get("lm");
-        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightMotor.setPower(0);
+        motorBR = hwMap.dcMotor.get("motor_br");
+        motorBR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorBR.setPower(0);
 
-        rMotor = hwMap.dcMotor.get("rm");
-        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rMotor.setDirection(DcMotor.Direction.REVERSE);
-        rMotor.setPower(0);
+        motorFR = hwMap.dcMotor.get("motor_fr");
+        motorFR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorFR.setDirection(DcMotor.Direction.REVERSE);
+        motorFR.setPower(0);
 
-        //sweeper = hwMap.dcMotor.get("sweeper");
+        motorBL = hwMap.dcMotor.get("motor_bl");
+        motorBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorBL.setPower(0);
 
-        leftMotor = hwMap.dcMotor.get("motor_left2");
-        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftMotor.setPower(0);
-
-        lMotor = hwMap.dcMotor.get("motor_right2");
-        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        lMotor.setDirection(DcMotor.Direction.REVERSE);
-        lMotor.setPower(0);
+        motorFL = hwMap.dcMotor.get("motor_fl");
+        motorFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorFL.setDirection(DcMotor.Direction.REVERSE);
+        motorFL.setPower(0);
 
         intakeBR = hwMap.get(Servo.class, "top_conveyor");
         intakeBL = hwMap.get(Servo.class, "bottom_conveyor");
@@ -136,9 +121,7 @@ public class AutonomousCommands {
         initialized = true;
     }
 
-    public void setJewelArmPosition(double pos) {
-        jewelArm.setPosition(pos);
-    }
+    public void setJewelArmPosition(double pos) { jewelArm.setPosition(pos); }
 
     /* Function to turn on/off the intake wheels
     direction is the direction in which the wheels should spin, IN, OUT, or NONE.
@@ -180,70 +163,162 @@ public class AutonomousCommands {
     TODO: Convert distance from ticks to inches.
      */
     public boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
-        if (!initialized) {
+        if (!initialized || !opMode.opModeIsActive()) {
             return false;
         }
+        double right = 0;
+        double left  = 0;
+        boolean goBackwards = false;
         // Set the motors to measure encoder counts.
-        rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motorBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motorFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motorBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motorFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        int startRPos = rightMotor.getCurrentPosition();
-        int startLPos = leftMotor.getCurrentPosition();
+        int startRPos = motorBR.getCurrentPosition();
+        int startLPos = motorBL.getCurrentPosition();
         double startTime = opMode.time;
 
+        if (speed < 0) {
+            goBackwards = true;
+        }
         // Robot is going backwards when it should be going forwards.
         speed = Range.clip(-speed, -1, 1);
         // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
-        while (opMode.opModeIsActive() && (Math.abs(rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(leftMotor.getCurrentPosition() -startLPos) < distance)) {
+        while (opMode.opModeIsActive() &&
+                (Math.abs(motorBR.getCurrentPosition() -startRPos) < distance) &&
+                    (Math.abs(motorBL.getCurrentPosition() -startLPos) < distance)) {
+
             if (opMode.time > startTime + timeout) {
                 telemetry.addData("Last drive stop:", "Timeout!");
+                telemetry.update();
                 break;
             }
 
             Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
-
-            telemetry.addData("motorleft dist:", leftMotor.getCurrentPosition() - startLPos);
-            telemetry.addData("motorright dist:", rightMotor.getCurrentPosition() - startRPos);
+            error = Range.clip(error, -Math.abs(speed/2), Math.abs(speed/2));
+            telemetry.addData("Right speed is %f", right);
+            telemetry.addData("Left speed is %f", left);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
-            telemetry.addData("error", error);
+            telemetry.addData("Error:", error);
+            telemetry.update();
 
-            double right = speed + error;
-            double left = speed - error;
-
-            if (speed < 0) {
-                right = Range.clip(right, -1, 1);
-                left = Range.clip(left, -1, 1);
+            if (goBackwards) { // Motor correction must be reversed if we're going backwards.
+                right = Range.clip((speed - error), -1, 1);
+                left = Range.clip((speed + error), -1, 1);
             } else {
-                right = Range.clip(right, -1, 1);
-                left = Range.clip(left, -1, 1);
+                right = Range.clip((speed + error), -1, 1);
+                left = Range.clip((speed - error), -1, 1);
             }
 
-            rightMotor.setPower(right/5);
-            rMotor.setPower(right/5);
-            //leftMotor.setPower(left/5);
-            //lMotor.setPower(left/5);
-            Thread.yield();
+            motorBR.setPower(right/5);
+            motorFR.setPower(right/5);
+            motorBL.setPower(left/5);
+            motorFL.setPower(left/5);
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
-        rightMotor.setPower(0.0);
-        rMotor.setPower(0.0);
-        leftMotor.setPower(0.0);
-        lMotor.setPower(0.0);
+        motorBR.setPower(0.0);
+        motorFR.setPower(0.0);
+        motorBL.setPower(0.0);
+        motorFL.setPower(0.0);
 
-        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorBR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorBL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (opMode.time < startTime + timeout);
+    }
+
+
+    // UNFINISHED
+    public boolean gyroDrive(double targetAngle, double speed, int distance, double timeout, boolean useNewDrive) {
+        if (!initialized) {
+            return false;
+        } else if (!useNewDrive) {
+            return gyroDrive(targetAngle, speed, distance, timeout);
+        } else {
+
+            double right, left;
+            boolean goBackwards = false;
+            // Set the motors to run to position
+            motorBR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            motorFR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            motorBL.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            motorFL.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            int startRPos = motorBR.getCurrentPosition();
+            int startLPos = motorBL.getCurrentPosition();
+            int startRPos2 = motorFR.getCurrentPosition();
+            int startLPos2 = motorFL.getCurrentPosition();
+            double startTime = opMode.time;
+
+            if (speed < 0) {
+                distance = -Math.abs(distance); // abs is in case -distance and -speed are accidentally sent.
+                goBackwards = true;
+            }
+
+            speed = Range.clip(Math.abs(speed), 0, 1);
+
+            motorBR.setTargetPosition(startRPos + distance);
+            motorFR.setTargetPosition(startRPos2 + distance);
+            motorBL.setTargetPosition(startLPos + distance);
+            motorFL.setTargetPosition(startLPos2 + distance);
+
+            motorBR.setPower(speed);
+            motorFR.setPower(speed);
+            motorBL.setPower(speed);
+            motorFL.setPower(speed);
+
+            // Start the loop.
+            while (opMode.opModeIsActive() &&
+                    (motorBR.isBusy() && motorFR.isBusy() && motorBL.isBusy() && motorFL.isBusy())) {
+                if (opMode.time > startTime + timeout) {
+                    telemetry.addData("Last drive stop:", "Timeout!");
+                    break;
+                }
+
+                Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
+                error = Range.clip(error, -speed/2, speed/2);
+                telemetry.addData("leftMotor dist:", motorBL.getCurrentPosition() - startLPos);
+                telemetry.addData("rightMotor dist:", motorBR.getCurrentPosition() - startRPos);
+                telemetry.addData("Current z orientation:", orientation.thirdAngle);
+                telemetry.addData("error", error);
+                telemetry.update();
+
+                if (goBackwards) { // Motor correction must be reversed if we're going backwards.
+                    right = Range.clip((speed - error), -1, 1);
+                    left = Range.clip((speed + error), -1, 1);
+                } else {
+                    right = Range.clip((speed + error), -1, 1);
+                    left = Range.clip((speed - error), -1, 1);
+                }
+
+                motorBR.setPower(right);
+                motorFR.setPower(right);
+                motorBL.setPower(left);
+                motorFL.setPower(left);
+            }
+
+            telemetry.addData("Last drive stop:", "Loop complete!");
+            motorBR.setPower(0.0);
+            motorFR.setPower(0.0);
+            motorBL.setPower(0.0);
+            motorFL.setPower(0.0);
+
+            motorBR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motorFR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motorBL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motorFL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            return (opMode.time < startTime + timeout);
+        }
     }
 
     /*
         The Turn function. Will turn to a given angle
-        targetAngle: The angle we wish to turn to.
+        targetAngle: The angle we wish to turn to. Should be between -180 and 180
         speed: The power of the motors
         timeout: Automatic timeout in seconds
         TODO: Convert distance from ticks to inches.
@@ -253,13 +328,13 @@ public class AutonomousCommands {
             return false;
         }
         double startTime = opMode.time;
-        double currentAngle = targetAngle + 30;
+        double currentAngle = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle;
         double right;
         double left;
 
         speed = Range.clip(Math.abs(speed), 0, 1);
-        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
-        while (Math.abs(targetAngle - currentAngle) > 15) { // Drive until we're within 15 degrees of the starting angle
+
+        while (Math.abs(targetAngle - currentAngle) > TURN_THRESHOLD) { // Drive until we're within 15 degrees of the starting angle
             if (opMode.time > startTime + timeout) {
                 telemetry.addData("Last drive stop:", "Timeout!");
                 break;
@@ -268,37 +343,103 @@ public class AutonomousCommands {
             Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             currentAngle = orientation.thirdAngle;
 
-            double slowdown = Math.abs(targetAngle - currentAngle) / 30;
-            slowdown = Range.clip(slowdown, 0.1, 1);
+            double slowdown = Range.clip( (Math.abs(targetAngle - currentAngle) / 30), 0.1, 1) ; // Slow down if we are within 30 degrees of the target angle.
 
             telemetry.addData("Current z orientation:", currentAngle);
             telemetry.addData("Slowdown:", slowdown);
+            telemetry.update();
 
-            if (targetAngle - currentAngle > 0) { // This isn't 100% effective
+            double comparisonAngle = targetAngle - currentAngle; // We're basically rotating the target angle into the local space of the current angle.
+            if (Math.abs(comparisonAngle) > 180) { comparisonAngle = -comparisonAngle; } // This is for cases such as target: -170   current: 170
+
+            if (comparisonAngle >= 0) { // Turn right
                 right = -speed * slowdown;
-                left = speed * slowdown;
+                left  = speed * slowdown;
             }
-            else {
+            else { // Turn left
                 right = speed * slowdown;
-                left = -speed * slowdown;
+                left  = -speed * slowdown;
             }
 
-            rightMotor.setPower(right);
-            rMotor.setPower(right);
-            leftMotor.setPower(left);
-            lMotor.setPower(left);
+            motorBR.setPower(right);
+            motorFR.setPower(right);
+            motorBL.setPower(left);
+            motorFL.setPower(left);
         }
 
         telemetry.addData("Last drive stop:", "Loop complete!");
-        rightMotor.setPower(0.0);
-        rMotor.setPower(0.0);
-        leftMotor.setPower(0.0);
-        lMotor.setPower(0.0);
+        motorBR.setPower(0.0);
+        motorFR.setPower(0.0);
+        motorBL.setPower(0.0);
+        motorFL.setPower(0.0);
 
-        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorBR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorBL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        return (opMode.time < startTime + timeout);
+    }
+
+    /*
+        The Strafing function.
+
+        UNFINISHED. DO NOT USE.
+        TODO: Convert distance from ticks to inches.
+    */
+    public boolean gyroStrafe(double targetAngle, double speed, double timeout) {
+        if (!initialized) {
+            return false;
+        }
+        double startTime = opMode.time;
+        double currentAngle = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle;
+        double right;
+        double left;
+
+        speed = Range.clip(Math.abs(speed), 0, 1);
+
+        while (Math.abs(targetAngle - currentAngle) > TURN_THRESHOLD) { // Drive until we're within 15 degrees of the starting angle
+            if (opMode.time > startTime + timeout) {
+                telemetry.addData("Last drive stop:", "Timeout!");
+                break;
+            }
+
+            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+            currentAngle = orientation.thirdAngle;
+
+            double slowdown = Range.clip( (Math.abs(targetAngle - currentAngle) / 30), 0.1, 1) ; // Slow down if we are within 30 degrees of the target angle.
+
+            telemetry.addData("Current z orientation:", currentAngle);
+            telemetry.addData("Slowdown:", slowdown);
+            telemetry.update();
+
+            double comparisonAngle = targetAngle - currentAngle; // We're basically rotating the target angle into the local space of the current angle.
+            if (Math.abs(comparisonAngle) > 180) { comparisonAngle = -comparisonAngle; } // This is for cases such as target: -170   current: 170
+
+            if (comparisonAngle >= 0) { // Turn right
+                right = -speed * slowdown;
+                left  = speed * slowdown;
+            }
+            else { // Turn left
+                right = speed * slowdown;
+                left  = -speed * slowdown;
+            }
+
+            motorBR.setPower(right);
+            motorFR.setPower(right);
+            motorBL.setPower(left);
+            motorFL.setPower(left);
+        }
+
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        motorBR.setPower(0.0);
+        motorFR.setPower(0.0);
+        motorBL.setPower(0.0);
+        motorFL.setPower(0.0);
+
+        motorBR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorBL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motorFL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (opMode.time < startTime + timeout);
     }
 
@@ -308,16 +449,16 @@ public class AutonomousCommands {
    Returning false means to drive backwards
     */
     public TeamColor jewelRun() {
-        jewelArm.setPosition(0.05);
+        jewelArm.setPosition(0.09);
         opMode.sleep(3000);
         telemetry.addData("Red: ", jewelSensorColor.red());
         telemetry.addData("Blue: ", jewelSensorColor.blue());
         telemetry.update();
-        if (jewelSensorColor.red() > 5 && jewelSensorColor.red() > jewelSensorColor.blue()) {
+        if (jewelSensorColor.red() > 1 && jewelSensorColor.red() > jewelSensorColor.blue()) {
             // Direct ball is red
             return TeamColor.RED;
         }
-        else if (jewelSensorColor.blue() > 5 && jewelSensorColor.blue() > jewelSensorColor.red()) {
+        else if (jewelSensorColor.blue() > 1 && jewelSensorColor.blue() > jewelSensorColor.red()) {
             // Direct ball is blue
             return TeamColor.BLUE;
         }
