@@ -115,10 +115,11 @@ public class BlueLower extends LinearOpMode
     //----------------------------------------------------------------------------------------------
 
     @Override public void runOpMode() {
-
+        robot.init(hardwareMap);
         // Set up the parameters with which we will use our IMU. Note that integration
         // algorithm here just reports accelerations to the logcat log; it doesn't actually
         // provide positional information.
+
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
@@ -131,7 +132,6 @@ public class BlueLower extends LinearOpMode
         // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
         // and named "imu".
         imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
 
         // Set up our telemetry dashboard
         //composeTelemetry();
@@ -186,20 +186,17 @@ public class BlueLower extends LinearOpMode
         relicTemplate = relicTrackables.get(0);
         relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
-        relicTrackables.activate();
+        rightMotor = robot.motorBR;
+        rMotor     = robot.motorFR;
+        leftMotor  = robot.motorBL;
+        lMotor     = robot.motorFL;
         // Wait until we're told to go
-        robot.init(hardwareMap);
-        waitForStart();
-        //hotfix
-        rightMotor = robot.motorFR;
-        rMotor     = robot.motorBR;
-        leftMotor  = robot.motorFL;
-        lMotor     = robot.motorBL;
 
+        waitForStart();
+        relicTrackables.activate();
         driveModule.init(hardwareMap, this);
 
-        //driveModule.gyroDrive(0, 0.3, 500, 2.0);
-        int pictoKey = findPictograph(1);
+        int pictoKey = findPictograph(2);
         TeamColor jewelColor = jewelRun();
 
         sleep(2000);
