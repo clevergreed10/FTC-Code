@@ -1,5 +1,5 @@
 public class spinner {
-    double Kp = 0.25;
+    double Kp = 0.15;
     double Ki = 0.1;
     double Kd = 0.1;
     double lastTime = 0;
@@ -10,7 +10,7 @@ public class spinner {
     
     private double getSpinError() {
         double current = robot.intakeSpinner.getCurrentPosition();
-        return (targetSpinnerPos - current)/72;
+        return (targetSpinnerPos - current);
     }
 
     // Imagine it's graphed with error being the y axis and time being the x axis.
@@ -25,7 +25,7 @@ public class spinner {
 
         double proportional = Kp * error;
         double integral = 0;//Ki * errSum;
-        double derivative = 0;//Kd * dError;
+        double derivative = Kd * dError;
 
         double power = Range.clip(proportional + integral + derivative, -1, 1);
         robot.intakeSpinner.setPower(power);
