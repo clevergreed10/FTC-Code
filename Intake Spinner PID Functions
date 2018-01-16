@@ -1,0 +1,35 @@
+public class spinner {
+    double Kp = 0.25;
+    double Ki = 0.1;
+    double Kd = 0.1;
+    double lastTime = 0;
+    double lastError = 0;
+    double errSum = 0;
+
+    double targetSpinnerPos = 0;
+    
+    private double getSpinError() {
+        double current = robot.intakeSpinner.getCurrentPosition();
+        return (targetSpinnerPos - current)/72;
+    }
+
+    // Imagine it's graphed with error being the y axis and time being the x axis.
+    private void setSpinPower() {
+        double now = time;
+
+        double error = getSpinError();
+        double timeChange = now - lastTime;
+
+        errSum += error * timeChange; // integration
+        double dError = (error - lastError) / timeChange; // this is a slope of the graph: m = y/x
+
+        double proportional = Kp * error;
+        double integral = 0;//Ki * errSum;
+        double derivative = 0;//Kd * dError;
+
+        double power = Range.clip(proportional + integral + derivative, -1, 1);
+        robot.intakeSpinner.setPower(power);
+        lastTime = now;
+        lastError = error;
+    }
+}
