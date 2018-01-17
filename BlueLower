@@ -236,14 +236,29 @@ public class BlueLower extends LinearOpMode
         changeIntakeDirection(Direction.OUT, Direction.DOWN);
         changeIntakeDirection(Direction.OUT, Direction.UP);
         sleep(500);
-        score = gyroDrive(-90, -DRIVE_SPEED, 1000, 2.0);
+        gyroDrive(-90, -DRIVE_SPEED, 500, 2.0); // Finished pushing out the glyphs, back up
         changeIntakeDirection(Direction.NONE, Direction.DOWN);
         changeIntakeDirection(Direction.NONE, Direction.UP);
         sleep(500);
-        score = gyroDrive(90, -DRIVE_SPEED, 2800, 5.0);
+        gyroDrive(90, -DRIVE_SPEED, 2800, 5.0); // Turn around to face the glyph pit
         sleep(500);
-        score = gyroDrive(90, -DRIVE_SPEED, 1000, 5.0);
+        changeIntakeDirection(Direction.IN, Direction.DOWN);
+        changeIntakeDirection(Direction.IN, Direction.UP);
+        gyroDrive(90, DRIVE_SPEED, 3000, 6.0); // Drive into the glyph pit
+        sleep(1000);
+        changeIntakeDirection(Direction.NONE, Direction.DOWN);
+        changeIntakeDirection(Direction.NONE, Direction.UP);
+        gyroDrive(90, -DRIVE_SPEED, 2500, 5.0); // Back up to the glyph container
         sleep(500);
+        gyroDrive(-90, -DRIVE_SPEED, 2800, 5.0);
+        sleep(500);
+        gyroDrive(-90, DRIVE_SPEED, 700, 3.0); // Drive into the glyph column
+        // WE NEED TO PUSH UP THE SPOOL
+        sleep(250);
+        changeIntakeDirection(Direction.OUT, Direction.DOWN);
+        changeIntakeDirection(Direction.OUT, Direction.UP);
+        sleep(500);
+        gyroDrive(-90, -DRIVE_SPEED, 3000, 6.0);
         score = gyroDrive(90, DRIVE_SPEED, 100, 2.0);
 
     }
@@ -330,7 +345,29 @@ public class BlueLower extends LinearOpMode
         return (time < startTime + timeout);
     }
 
+    public Boolean moveSpool(int position, double timeout) {
+        robot.spool.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.spool.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        double startTime = time;
+        
+        robot.spool.setTargetPosition(position);
+        robot.spool.setPower(1);
+        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
+        while (opModeIsActive() && robot.spool.isBusy()) {
+            if (time > startTime + timeout) {
+                telemetry.addData("Last drive stop:", "Timeout!");
+                break;
+            }
+            telemetry.addData("Current position:", robot.spool.getCurrentPosition());
+            telemetry.update();
+        }
 
+        telemetry.addData("Last drive stop:", "Loop complete!");
+        robot.spool.setPower(0);
+        robot.spool.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        
+        return (time < startTime + timeout);
+    }
     /*
     Function find get the pictograph value at the start of autonomous
     timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
