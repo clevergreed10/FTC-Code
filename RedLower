@@ -65,7 +65,7 @@ public class RedLower extends LinearOpMode
 
     HardwareEEBot robot = new HardwareEEBot();
 
-   // AutonomousCommands driveModule = new AutonomousCommands();
+    // AutonomousCommands driveModule = new AutonomousCommands();
 
     //vuforia is the variable we will use to store our instance of the Vuforia localization engine.
     VuforiaLocalizer vuforia;
@@ -162,7 +162,6 @@ public class RedLower extends LinearOpMode
         leftMotor  = robot.motorFL;
         lMotor     = robot.motorBL;
 
-
         robot.spool.setPower(-0.5);
         sleep(600);
         robot.spool.setPower(0);
@@ -221,26 +220,36 @@ public class RedLower extends LinearOpMode
             gyroDrive(0, DRIVE_SPEED, 900, 3.0);
             sleep(500);
         }
-        score = gyroDrive(-80, -DRIVE_SPEED/2, 1300, 5.0);
+        gyroDrive(-80, -DRIVE_SPEED/2, 1300, 5.0);
         sleep(500);
-        score = gyroDrive(-90, DRIVE_SPEED, 700, 3.0);
+        gyroDrive(-90, DRIVE_SPEED, 700, 3.0);
         sleep(250);
         changeIntakeDirection(Direction.OUT, Direction.DOWN);
         changeIntakeDirection(Direction.OUT, Direction.UP);
         sleep(500);
-        score = gyroDrive(-90, -DRIVE_SPEED, 1000, 2.0);
+        gyroDrive(-90, -DRIVE_SPEED, 500, 2.0); // Finished pushing out the glyphs, back up
         changeIntakeDirection(Direction.NONE, Direction.DOWN);
         changeIntakeDirection(Direction.NONE, Direction.UP);
         sleep(500);
-        score = gyroDrive(90, -DRIVE_SPEED, 2800, 5.0);
+        gyroDrive(90, -DRIVE_SPEED, 2800, 5.0); // Turn around to face the glyph pit
         sleep(500);
-        score = gyroDrive(90, -DRIVE_SPEED, 1100, 5.0);
+        changeIntakeDirection(Direction.IN, Direction.DOWN);
+        changeIntakeDirection(Direction.IN, Direction.UP);
+        gyroDrive(90, DRIVE_SPEED, 3000, 6.0); // Drive into the glyph pit
+        sleep(1000);
+        changeIntakeDirection(Direction.NONE, Direction.DOWN);
+        changeIntakeDirection(Direction.NONE, Direction.UP);
+        gyroDrive(90, -DRIVE_SPEED, 2500, 5.0); // Back up to the glyph container
         sleep(500);
-        score = gyroDrive(90, DRIVE_SPEED, 300, 2.0);
+        gyroDrive(-90, -DRIVE_SPEED, 2800, 5.0);
+        sleep(500);
+        gyroDrive(-90, DRIVE_SPEED, 700, 3.0); // Drive into the glyph column
+        sleep(250);
+        changeIntakeDirection(Direction.OUT, Direction.DOWN);
+        changeIntakeDirection(Direction.OUT, Direction.UP);
+        sleep(500);
+        gyroDrive(-90, -DRIVE_SPEED, 3000, 6.0);
 
-
-        // Our robot should be inside the safezone at this point and our autonomous will end
-        // In the future we are going to play around with grabbing more glyphs off the field in autonomous
     }
 
     public TeamColor jewelRun() {
