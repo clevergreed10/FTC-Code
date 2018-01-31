@@ -80,6 +80,7 @@ public class BlueLower extends LinearOpMode
 
     final double TURN_SPEED = 0.2;
     final double DRIVE_SPEED = 0.25;
+    final double Kp = 0.05;
 
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
@@ -148,8 +149,6 @@ public class BlueLower extends LinearOpMode
         parameters.loggingEnabled      = true;
         parameters.loggingTag          = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
-
-
 
         // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
         // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
@@ -309,15 +308,16 @@ public class BlueLower extends LinearOpMode
 
             Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             // angles                  = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-            double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
-            error = Range.clip(error, -1, 1);
+            double error = (targetAngle - (orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle));
+            double correction = error * Kp;
+            //error = Range.clip(error, -1, 1);
             telemetry.addData("motorleft dist:", leftMotor.getCurrentPosition() - startLPos);
             telemetry.addData("motorright dist:", rightMotor.getCurrentPosition() - startRPos);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
             telemetry.addData("error", error);
             telemetry.update();
-            double right = speed + error;
-            double left = speed - error;
+            double right = speed - correction;
+            double left = speed + correction;
 
             double max = Math.max(Math.abs(right), Math.abs(left));
 
@@ -349,7 +349,7 @@ public class BlueLower extends LinearOpMode
         robot.spool.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         robot.spool.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         double startTime = time;
-        
+
         robot.spool.setTargetPosition(position);
         robot.spool.setPower(1);
         // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
@@ -365,7 +365,7 @@ public class BlueLower extends LinearOpMode
         telemetry.addData("Last drive stop:", "Loop complete!");
         robot.spool.setPower(0);
         robot.spool.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        
+
         return (time < startTime + timeout);
     }
     /*
