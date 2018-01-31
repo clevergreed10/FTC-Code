@@ -80,6 +80,7 @@ public class RedLower extends LinearOpMode
 
     final double TURN_SPEED = 0.2;
     final double DRIVE_SPEED = 0.25;
+    final double Kp = 0.05;
 
     private double grabberLeftMin = 0.48;
     private double grabberLeftMax = 0.6;
@@ -299,15 +300,16 @@ public class RedLower extends LinearOpMode
 
             Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
             // angles                  = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-            double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
-            error = Range.clip(error, -1, 1);
+            double error = (targetAngle - (orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle));
+            double correction = error * Kp;
+            //error = Range.clip(error, -1, 1);
             telemetry.addData("motorleft dist:", leftMotor.getCurrentPosition() - startLPos);
             telemetry.addData("motorright dist:", rightMotor.getCurrentPosition() - startRPos);
             telemetry.addData("Current z orientation:", orientation.thirdAngle);
             telemetry.addData("error", error);
             telemetry.update();
-            double right = speed + error;
-            double left = speed - error;
+            double right = speed - correction;
+            double left = speed + correction;
 
             double max = Math.max(Math.abs(right), Math.abs(left));
 
@@ -334,9 +336,7 @@ public class RedLower extends LinearOpMode
         lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         return (time < startTime + timeout);
     }
-
-
-
+    
     /*
     Function find get the pictograph value at the start of autonomous
     timeout is the max amount of seconds we can be searching for the cipher. CENTER will be returned if it is not found.
