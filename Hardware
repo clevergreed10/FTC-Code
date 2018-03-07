@@ -44,14 +44,6 @@ public class HardwareEEBot {
     public DcMotor motorBL = null;
     public DcMotor motorBR = null;
     public DcMotor spool = null;
-   // public DcMotor lMotor = null;
-    //public DcMotor rMotor = null;
-    //public DcMotor spool = null;
-    //public DcMotor RI = null;
-    //public DcMotor LI = null;
-    //public DcMotor  flipper   = null;
-    //public DcMotor  sweeper    = null;
-    ////public DcMotor  elevator  = null;
 
     //Servos\
     public Servo UR_Intake;
@@ -59,26 +51,13 @@ public class HardwareEEBot {
     public Servo UL_Intake;
     public Servo BL_Intake;
     public Servo jewelArm= null;
-    /*public Servo glyphGrabberLeft = null;
-    public Servo glyphGrabberLeft2 = null;
-    public Servo glyphGrabberRight = null;
-    public Servo glyphGrabberRight2 = null;*/
-    //public Servo scoop1 = null;       //right servo
-    //public Servo scoop2 = null;
-    //public Servo clicker1 = null;
-    //public Servo clicker2 = null;
-    //public Servo rightClicker = null;
-    //public Servo leftClicker = null;
-    // public Servo bucket1 = null;
-    //public Servo bucket2 = null;
-    //public Servo forkliftServo = null;
-    //public Servo forkliftFlap = null;
+    public Servo rgc;
+    public Servo rga;
 
     //public AnalogInput colorButton = null;
     //Sensors
     ColorSensor jewelSensorColor;
     //DistanceSensor jewelSensorDistance;
-
 
     /* Local OpMode members. */
     HardwareMap hwMap = null;
@@ -93,17 +72,6 @@ public class HardwareEEBot {
         // save reference to HW Map
         hwMap = ahwMap;
 
-//        // Set up the parameters with which we will use our IMU.
-//        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-//        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-//        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-//        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
-//        parameters.loggingEnabled      = true;
-//        parameters.loggingTag          = "IMU";
-//        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
         imu = hwMap.get(BNO055IMU.class, "imu");
 
         // Define and Initialize Motors
@@ -142,72 +110,8 @@ public class HardwareEEBot {
         spool.setDirection(DcMotor.Direction.REVERSE);
         spool.setPower(0);
 
-        //sweeper = hwMap.dcMotor.get("sweeper");
-
-//        lMotor = hwMap.dcMotor.get("motor_left2");
-//        lMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        lMotor.setPower(0);
-//
-//        rMotor = hwMap.dcMotor.get("motor_right2");
-//        rMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        rMotor.setDirection(DcMotor.Direction.REVERSE);
-//        rMotor.setPower(0);
-//
-//        spool = hwMap.dcMotor.get("spool");
-//        spool.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        spool.setDirection(DcMotor.Direction.REVERSE);
-//        spool.setPower(0);
-//
-//        RI = hwMap.dcMotor.get("ri");
-//        RI.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        RI.setPower(0);
-//
-//        LI = hwMap.dcMotor.get("li");
-//        LI.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-//        LI.setDirection(DcMotor.Direction.REVERSE);
-//        LI.setPower(0);
-        //sweeper = hwMap.dcMotor.get("sweeper");
-        //elevator = hwMap.dcMotor.get("elevator");
-        //elevator.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-//        flipper = hwMap.dcMotor.get("flipper");
-        //      flipper.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //    flipper.setDirection(DcMotor.Direction.REVERSE);
-        //  flipper.setPower(0);
-
         // get a reference to the color sensor.
-       jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
-
-        // get a reference to the distance sensor that shares the same name.
-        //jewelSensorDistance = hwMap.get(DistanceSensor.class, "sensor_color_distance");
-
-        //Define and initialize sensor
-
-//        rightColorController = colorBeaconRight.getI2cController();
-//        rightColorCallback =  rightColorController.getI2cPortReadyCallback(colorBeaconRight.getPort());
-
-//        I2cDevice colori2cR = hwMap.i2cDevice.get("colorBeaconRight");
-//        colorBeaconRight = new ModernRoboticsI2cColorSensor2(colori2cR.getI2cController(),colori2cR..getPort());
-
-//        rightColorSensor = hwMap.i2cDevice.get("colorBeaconRight");
-//        rightColorSensorReader = new I2cDeviceSynchImpl(rightColorSensor, I2cAddr.create8bit(0x3c), false);
-//        rightColorSensorReader.engage();
-//        leftColorController = colorBeaconLeft.getI2cController();
-//        leftColorCallback =  leftColorController.getI2cPortReadyCallback(colorBeaconLeft.getPort());
-
-
-//        colorBeaconFloor = (ModernRoboticsI2cColorSensor)hwMap.colorSensor.get("colorBeaconFloor");//
-//        colorBeaconFloor.setI2cAddress(I2cAddr.create7bit(0x20));
-//        floorColorController = colorBeaconFloor.getI2cController();
-//        floorColorCallback =  floorColorController.getI2cPortReadyCallback(colorBeaconFloor.getPort());
-//        leftColorController.deregisterForPortReadyCallback(colorBeaconFloor.getPort());
-//        colorBeaconFloorSensorState = new FtcI2cDeviceState(colorBeaconFloor);
-//        colorBeaconFloorSensorState.setEnabled(false);
-        // colorButton = hwMap.analogInput.get("ColorButton");
-//Ruled illegal for now, leave for later -- MDC 20170217
-//        redLED      = (DigitalChannel) hwMap.digitalChannel.get("redLED");
-//        blueLED     = (DigitalChannel) hwMap.digitalChannel.get("blueLED");
-        //Use LEDs onboard DIM
+        jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
 
 
         // Define and initialize ALL installed servos.
@@ -215,80 +119,9 @@ public class HardwareEEBot {
         BL_Intake = hwMap.get(Servo.class, "bottom_conveyor");
         UR_Intake = hwMap.get(Servo.class, "UR_Intake");
         UL_Intake = hwMap.get(Servo.class, "UL_Intake");
+        rga = hwMap.get(Servo.class, "rga");
+        rgc = hwMap.get(Servo.class, "rgc");
         jewelArm = hwMap.servo.get("jewelArm");
-        /*glyphGrabberLeft = hwMap.get(Servo.class, "glyphGrabberLeft");
-        glyphGrabberLeft2 = hwMap.get(Servo.class, "glyphGrabberLeft2");
-        glyphGrabberRight = hwMap.get(Servo.class, "glyphGrabberRight");
-        glyphGrabberRight2 = hwMap.get(Servo.class, "glyphGrabberRight2");
-//        scoop1 = hwMap.servo.get("scoop1");
-        //      scoop2 = hwMap.servo.get("scoop2");
-        //    clicker1 = hwMap.servo.get("clicker1");
-        //  clicker2 = hwMap.servo.get("clicker2");
-        //rightClicker = clicker2;
-        //leftClicker = clicker1;
-       // bucket1 = hwMap.servo.get("bucket1");
-        //    forkliftServo = bucket1;
-        //bucket2 = hwMap.servo.get("bucket2");
-        //  forkliftFlap = bucket1;
 
-    }
-
-    /*public boolean gyroDrive(double targetAngle, double speed, int distance, double timeout) {
-        // Set the motors to measure encoder counts.
-        rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        lMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        int startRPos = rightMotor.getCurrentPosition();
-        int startLPos = leftMotor.getCurrentPosition();
-        double startTime = time;
-
-        speed = -speed;
-        speed = Range.clip(speed, -1, 1);
-        // Start the loop. Even if we're going backwards, math.abs makes sure that we can still compare to distance.
-        while (opModeIsActive() && (Math.abs(rightMotor.getCurrentPosition() -startRPos) < distance) && (Math.abs(leftMotor.getCurrentPosition() -startLPos) < distance)) {
-            if (time > startTime + timeout) {
-                telemetry.addData("Last drive stop:", "Timeout!");
-                break;
-            }
-
-            Orientation orientation = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
-            double error = ((orientation.thirdAngle > 180 ? orientation.thirdAngle - 360 : orientation.thirdAngle) - targetAngle) / (25.0);
-
-            telemetry.addData("motorleft dist:", leftMotor.getCurrentPosition() - startLPos);
-            telemetry.addData("motorright dist:", rightMotor.getCurrentPosition() - startRPos);
-            telemetry.addData("Current z orientation:", orientation.thirdAngle);
-            telemetry.addData("error", error);
-
-            double right = speed + error;
-            double left = speed - error;
-
-            if (speed < 0) {
-                right = Range.clip(right, -1, 1);
-                left = Range.clip(left, -1, 1);
-            } else {
-                right = Range.clip(right, -1, 1);
-                left = Range.clip(left, -1, 1);
-            }
-
-            rightMotor.setPower(right);
-            rMotor.setPower(right);
-            leftMotor.setPower(left);
-            lMotor.setPower(left);
-        }
-
-        telemetry.addData("Last drive stop:", "Loop complete!");
-        rightMotor.setPower(0.0);
-        rMotor.setPower(0.0);
-        leftMotor.setPower(0.0);
-        lMotor.setPower(0.0);
-
-        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        return (time < startTime + timeout);
-    }*/
     }
 }
