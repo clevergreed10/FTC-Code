@@ -1,10 +1,7 @@
 /**
- * Created by Team 9386 on 9/27/2016.
+ * Created by Team 9386 on 9/27/2017.
  *
- * Updated and Rewritten 9/19/2017.
- *
- * TODO - 10-10: Change strafing to Triggers, scale speed,
- * TODO - 10-10: Code glyph grabbers on X and B buttons
+ * Updated 4-24-2018
  */
 package org.firstinspires.ftc.teamcode;
 
