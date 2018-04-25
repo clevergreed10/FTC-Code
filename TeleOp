@@ -180,11 +180,23 @@ public class EETeleop extends OpMode {
         }
 
         if (gamepad1.dpad_up) {
-            robot.rga.setPosition(1);
+            double newPos = robot.rga.getPosition() +  0.01;
+            if (newPos > 1) {
+                robot.rga.setPosition(1);
+            } else{
+                robot.rga.setPosition(newPos);
+
+            }
         }
 
         if (gamepad1.dpad_down) {
-            robot.rga.setPosition(SERV);
+
+            double newPos = robot.rga.getPosition() -  0.01;
+            if (newPos < 0) {
+                robot.rga.setPosition(0);
+            } else{
+                robot.rga.setPosition(newPos);
+            }
         }
                 // GAMEPAD 2 CONTROLS \\
 
@@ -196,7 +208,7 @@ public class EETeleop extends OpMode {
             robot.spool.setPower(spoolSpeed * SPOOL_DAMPENER);
         }
 
-        if (gamepad2.dpad_down){
+        /**if (gamepad2.dpad_down){
             robot.intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
         if (gamepad2.dpad_up){
@@ -222,11 +234,46 @@ public class EETeleop extends OpMode {
                 telemetry.addData("Updating target position:", 0);
                 robot.intakeLeft.setTargetPosition(0);
             }
+        }**/
+
+        if (gamepad2.left_bumper) {
+            //manual
+            robot.intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.intakeLeft.setPower(0);
+        } else if (gamepad2.right_bumper) {
+            //automatic
+            robot.intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.intakeLeft.setPower(0.5);
+        }
+
+        if (gamepad2.left_trigger > 0.1) {
+            if (robot.intakeLeft.getMode() == DcMotor.RunMode.RUN_USING_ENCODER){
+                if (robot.intakeLeft.getMode() == DcMotor.RunMode.RUN_USING_ENCODER){
+                    if (robot.intakeLeft.getCurrentPosition() < 0) {
+                        robot.intakeLeft.setPower(-scaleInput(gamepad2.left_trigger));
+                    } else {
+                        robot.intakeLeft.setPower(0);
+                    }
+                }
+            } else{
+               robot.intakeLeft.setTargetPosition(0);
+            }
+        } else if (gamepad2.right_trigger > 0.1) {
+            if (robot.intakeLeft.getMode() == DcMotor.RunMode.RUN_USING_ENCODER){
+                if (robot.intakeLeft.getCurrentPosition() > -144) {
+                    robot.intakeLeft.setPower(scaleInput(gamepad2.right_trigger));
+                } else {
+                    robot.intakeLeft.setPower(0);
+                }
+            }
+            else {
+                robot.intakeLeft.setTargetPosition(-144);
+            }
         }
         telemetry.addData("Current position:", robot.intakeLeft.getCurrentPosition());
         telemetry.update();
 
-        //if (robot.intakeLeft.getMode() == DcMotor.RunMode.RUN_USING_ENCODER){
+        /**if (robot.intakeLeft.getMode() == DcMotor.RunMode.RUN_USING_ENCODER){
             if (Math.abs(gamepad2.right_stick_y) > 0.1) {
                 robot.intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 double leftPower = scaleInput(gamepad2.right_stick_y) * -0.5;
@@ -249,7 +296,7 @@ public class EETeleop extends OpMode {
             else{
                 robot.intakeRight.setPower(0);
             }
-        }
+        }**/
         // Intake servos
         if (gamepad2.x) {
             if (!xDown) {
