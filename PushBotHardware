@@ -1,0 +1,127 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+//import com.qualcomm.hardware.modernrobotics.ModernRoboticsDigitalTouchSensor;
+
+
+/**
+ * This is NOT an opmode.
+ *
+ * This class can be used to define all the specific hardware for a single robot.
+ * In this case that robot is a K9 robot.
+ *
+ * This hardware class assumes the following device names have been configured on the robot:
+ * Note:  All names are lower case and some have single spaces between words.
+ *
+ * Motor channel:  Left  drive motor:        "left motor"
+ * Motor channel:  Right drive motor:        "right motor"
+ * Servo channel:  Servo to raise/lower arm: "arm"
+ * Servo channel:  Servo to open/close claw: "claw"
+ *
+ * Note: the configuration of the servos is such that:
+ *   As the arm servo approaches 0, the arm position moves up (away from the floor).
+ *   As the claw servo approaches 0, the claw opens up (drops the game element).
+ */
+public class HardwareEEBot {
+    // IMU
+    public BNO055IMU imu;
+
+    /* Public OpMode members. */
+    // B = back, F = front, R = right, L = left. Thus BR = back right.
+    public DcMotor intakeLeft = null;
+    public DcMotor intakeRight = null;
+    public DcMotor motorFL = null;
+    public DcMotor motorFR = null;
+    public DcMotor motorBL = null;
+    public DcMotor motorBR = null;
+    public DcMotor spool = null;
+
+    //Servos\
+    public Servo UR_Intake;
+    public Servo BR_Intake;
+    public Servo UL_Intake;
+    public Servo BL_Intake;
+    public Servo jewelArm= null;
+    public Servo rgc;
+    public Servo rga;
+
+    //public AnalogInput colorButton = null;
+    //Sensors
+    ColorSensor jewelSensorColor;
+    //DistanceSensor jewelSensorDistance;
+
+    /* Local OpMode members. */
+    HardwareMap hwMap = null;
+    private ElapsedTime period = new ElapsedTime();
+
+    /* Constructor */
+    public HardwareEEBot() {
+    }
+
+    /* Initialize standard Hardware interfaces */
+    public void init(HardwareMap ahwMap) {
+        // save reference to HW Map
+        hwMap = ahwMap;
+
+        imu = hwMap.get(BNO055IMU.class, "imu");
+
+        // Define and Initialize Motors
+        intakeLeft = hwMap.dcMotor.get("motor_left");
+        intakeLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        intakeLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeLeft.setPower(0);
+
+        intakeRight = hwMap.dcMotor.get("motor_right");
+        intakeRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        intakeRight.setPower(0);
+        intakeRight.setDirection(DcMotor.Direction.REVERSE);
+
+        motorFL = hwMap.dcMotor.get("motor_fl");
+        motorFL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorFL.setPower(0);
+
+        motorFR = hwMap.dcMotor.get("motor_fr");
+        motorFR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorFR.setDirection(DcMotor.Direction.REVERSE);
+        motorFR.setPower(0);
+
+        //sweeper = hwMap.dcMotor.get("sweeper");
+
+        motorBL = hwMap.dcMotor.get("motor_bl");
+        motorBL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorBL.setPower(0);
+
+        motorBR = hwMap.dcMotor.get("motor_br");
+        motorBR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        motorBR.setDirection(DcMotor.Direction.REVERSE);
+        motorBR.setPower(0);
+
+        spool = hwMap.dcMotor.get("spool");
+        spool.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        spool.setDirection(DcMotor.Direction.REVERSE);
+        spool.setPower(0);
+
+        // get a reference to the color sensor.
+        jewelSensorColor = hwMap.get(ColorSensor.class, "sensor_color_distance");
+
+
+        // Define and initialize ALL installed servos.
+        BR_Intake = hwMap.get(Servo.class, "top_conveyor");
+        BL_Intake = hwMap.get(Servo.class, "bottom_conveyor");
+        UR_Intake = hwMap.get(Servo.class, "UR_Intake");
+        UL_Intake = hwMap.get(Servo.class, "UL_Intake");
+        rga = hwMap.get(Servo.class, "rga");
+        rgc = hwMap.get(Servo.class, "rgc");
+        jewelArm = hwMap.servo.get("jewelArm");
+
+    }
+}
